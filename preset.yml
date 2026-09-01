@@ -1,0 +1,36 @@
+name: AnyModel AI Orchestrator Pipeline Preset
+version: "1.0"
+agent:
+  name: cordis-orchestrator
+  environment:
+    ANYMODEL_BASE_URL: "https://anymodel.org/v1"
+    ANYMODEL_API_KEY: "${ANYMODEL_API_KEY}"
+    JAVA_HOME: "/usr/lib/jvm/java-26-openjdk"
+  roles:
+    architect:
+      model: "cc/claude-sonnet-4-6"
+      temperature: 0.3
+      max_tokens: 8192
+    worker:
+      model: "ag/gemini-3.7-flash-high"
+      temperature: 0.2
+      max_tokens: 16384
+    tester:
+      model: "ag/gemini-3.7-flash-high"
+      temperature: 0.1
+      max_tokens: 8192
+    helper:
+      model: "ag/gemini-3.6-flash-high"
+      temperature: 0.2
+      max_tokens: 8192
+
+pipeline:
+  steps:
+    - name: ARCHITECT
+      enabled: true
+    - name: WORKER
+      enabled: true
+    - name: TESTER
+      enabled: true
+    - name: HELPER
+      enabled: true

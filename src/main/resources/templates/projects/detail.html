@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title th:text="${project.name}">Детали Проекта</title>
+</head>
+<body>
+<div layout:fragment="header">
+    Проект: <span th:text="${project.name}">Имя Проекта</span>
+</div>
+
+<div layout:fragment="content">
+    <!-- Info & Controls Row -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card card-outline card-info">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title"><i class="fas fa-cogs mr-1"></i> Управление Конвейером Агентов</h3>
+                    <div class="card-tools ml-auto">
+                        <button id="btnRunFull" class="btn btn-success mr-2" th:onclick="'runPipeline(' + ${project.id} + ', true, \'ARCHITECT\')'">
+                            <i class="fas fa-play"></i> Запустить полный пайплайн
+                        </button>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+                                Запустить агента
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-right">
+                                <a class="dropdown-item" href="#" th:onclick="'runPipeline(' + ${project.id} + ', false, \'ARCHITECT\')'">1. Architect (Claude)</a>
+                                <a class="dropdown-item" href="#" th:onclick="'runPipeline(' + ${project.id} + ', false, \'WORKER\')'">2. Worker (Gemini 3.7)</a>
+                                <a class="dropdown-item" href="#" th:onclick="'runPipeline(' + ${project.id} + ', false, \'TESTER\')'">3. Tester (Gemini 3.7)</a>
+                                <a class="dropdown-item" href="#" th:onclick="'runPipeline(' + ${project.id} + ', false, \'HELPER\')'">4. Helper (Gemini 3.6)</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted" th:text="${project.description} ?: 'Нет описания.'"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clarification Question Panel (Hidden by default, shown if waiting) -->
+    <div class="row" id="clarificationPanel" style="display:none;">
+        <div class="col-12">
+            <div class="card card-warning">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-question-circle mr-1"></i> Архитектор требует уточнения!</h3>
+                </div>
+                <div class="card-body">
+                    <div id="clarificationQuestions" class="mb-3 font-weight-bold"></div>
+                    <div class="form-group">
+                        <label for="userAnswerInput">Ваш ответ:</label>
+                        <textarea id="userAnswerInput" class="form-control" rows="3" placeholder="Введите ответы на вопросы архитектора..."></textarea>
+                    </div>
+                    <button class="btn btn-warning" th:onclick="'submitAnswer(' + ${project.id} + ')'">
+                        <i class="fas fa-paper-plane"></i> Отправить ответ и продолжить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Drag & Drop File Upload & File List -->
+        <div class="col-md-4">
+            <div class="card card-secondary">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-paperclip mr-1"></i> Контекстные Файлы</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Drop Zone -->
+                    <div id="dropZone" class="drag-drop-zone mb-3">
+                        <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-2"></i>
+                        <p class="mb-1">Перетащите файлы сюда или нажмите для выбора</p>
+                        <input type="file" id="fileInput" multiple style="display: none;">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fileTypeSelect">Тип загружаемых файлов:</label>
+                        <select id="fileTypeSelect" class="form-control form-control-sm">
+                            <option value="TASK">TASK (Задача)</option>
+                            <option value="SOURCE_CODE">SOURCE_CODE (Исходный код)</option>
+                            <option value="SPEC">SPEC (Спецификация)</option>
+                        </select>
+                    </div>
+
+                    <!-- Files list -->
+                    <ul class="list-group list-group-flush" id="fileList">
+                        <li class="list-group-item d-flex justify-content-between align-items-center" th:each="file : ${files}">
+                            <div>
+                                <i class="fas fa-file-alt mr-2 text-muted"></i>
+                                <span th:text="${file.fileName}">filename.txt</span>
+                                <span class="badge badge-light border ml-1" th:text="${file.fileType}">TASK</span>
+                            </div>
+                            <button class="btn btn-xs btn-outline-danger" th:onclick="'deleteFile(' + ${project.id} + ', ' + ${file.id} + ')'">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </li>
+                        <li class="list-group-item text-center text-muted" th:if="${#lists.isEmpty(files)}" id="noFilesMsg">
+                            Файлы ещё не прикреплены
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pipeline Execution Output Tabs -->
+        <div class="col-md-8">
+            <div class="card card-primary card-outline card-tabs">
+                <div class="card-header p-0 pt-1 border-bottom-0">
+                    <ul class="nav nav-tabs" id="agentTabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="tab-architect" data-toggle="pill" href="#content-architect" role="tab">1. Architect</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="tab-worker" data-toggle="pill" href="#content-worker" role="tab">2. Worker</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="tab-tester" data-toggle="pill" href="#content-tester" role="tab">3. Tester</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="tab-helper" data-toggle="pill" href="#content-helper" role="tab">4. Helper</a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="agentTabsContent">
+                        <div class="tab-pane fade show active" id="content-architect" role="tabpanel">
+                            <pre class="pre-scrollable-custom" id="output-ARCHITECT">Ожидание запуска шага Architect...</pre>
+                        </div>
+                        <div class="tab-pane fade" id="content-worker" role="tabpanel">
+                            <pre class="pre-scrollable-custom" id="output-WORKER">Ожидание запуска шага Worker...</pre>
+                        </div>
+                        <div class="tab-pane fade" id="content-tester" role="tabpanel">
+                            <pre class="pre-scrollable-custom" id="output-TESTER">Ожидание запуска шага Tester...</pre>
+                        </div>
+                        <div class="tab-pane fade" id="content-helper" role="tabpanel">
+                            <pre class="pre-scrollable-custom" id="output-HELPER">Ожидание запуска шага Helper...</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block layout:fragment="scripts">
+<script th:inline="javascript">
+    const currentProjectId = /*[[${project.id}]]*/ 0;
+    const initialSteps = /*[[${steps}]]*/ [];
+
+    $(document).ready(function() {
+        if (initialSteps && initialSteps.length > 0) {
+            initialSteps.forEach(s => {
+                $("#output-" + s.stepName).text(s.response || "(Пустой ответ)");
+            });
+        }
+        checkStatus(currentProjectId);
+
+        // File Drag & Drop
+        const dropZone = $("#dropZone");
+        const fileInput = $("#fileInput");
+
+        dropZone.on("click", function() { fileInput.click(); });
+        dropZone.on("dragover", function(e) { e.preventDefault(); dropZone.addClass("dragover"); });
+        dropZone.on("dragleave", function(e) { e.preventDefault(); dropZone.removeClass("dragover"); });
+        dropZone.on("drop", function(e) {
+            e.preventDefault();
+            dropZone.removeClass("dragover");
+            uploadFiles(e.originalEvent.dataTransfer.files);
+        });
+        fileInput.on("change", function() {
+            uploadFiles(this.files);
+        });
+    });
+
+    function uploadFiles(files) {
+        if (!files || files.length === 0) return;
+        let formData = new FormData();
+        for (let i = 0; i < files.length; i++) {
+            formData.append("files", files[i]);
+        }
+        formData.append("fileType", $("#fileTypeSelect").val());
+
+        $.ajax({
+            url: `/projects/${currentProjectId}/files`,
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function() {
+                location.reload();
+            },
+            error: function(err) {
+                alert("Ошибка загрузки файлов: " + (err.responseJSON ? err.responseJSON.message : "Неизвестная ошибка"));
+            }
+        });
+    }
+
+    function deleteFile(projectId, fileId) {
+        if (!confirm("Удалить этот файл?")) return;
+        $.ajax({
+            url: `/projects/${projectId}/files/${fileId}`,
+            type: "DELETE",
+            success: function() {
+                location.reload();
+            }
+        });
+    }
+
+    function runPipeline(projectId, full, startStep) {
+        $("#btnRunFull").prop("disabled", true).html('<i class="fas fa-spinner fa-spin"></i> Выполняется...');
+
+        $.ajax({
+            url: `/api/projects/${projectId}/orchestrator/run`,
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+                startFromStep: startStep,
+                runFullPipeline: full
+            }),
+            success: function(status) {
+                renderStatus(status);
+            },
+            error: function(err) {
+                alert("Ошибка выполнения: " + (err.responseJSON ? err.responseJSON.message : err.responseText));
+            },
+            complete: function() {
+                $("#btnRunFull").prop("disabled", false).html('<i class="fas fa-play"></i> Запустить полный пайплайн');
+            }
+        });
+    }
+
+    function submitAnswer(projectId) {
+        const ans = $("#userAnswerInput").val();
+        if (!ans.trim()) return;
+
+        $.ajax({
+            url: `/api/projects/${projectId}/orchestrator/answer`,
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({ answer: ans }),
+            success: function(status) {
+                $("#userAnswerInput").val("");
+                renderStatus(status);
+            },
+            error: function(err) {
+                alert("Ошибка отправки ответа: " + err.responseText);
+            }
+        });
+    }
+
+    function checkStatus(projectId) {
+        $.get(`/api/projects/${projectId}/orchestrator/status`, function(status) {
+            renderStatus(status);
+        });
+    }
+
+    function renderStatus(status) {
+        if (status.awaitingUserInput && status.pendingQuestion) {
+            $("#clarificationPanel").slideDown();
+            $("#clarificationQuestions").text(status.pendingQuestion);
+        } else {
+            $("#clarificationPanel").slideUp();
+        }
+
+        if (status.steps) {
+            status.steps.forEach(step => {
+                $("#output-" + step.stepName).text(step.response || "");
+            });
+        }
+    }
+</script>
+</th:block>
+</body>
+</html>

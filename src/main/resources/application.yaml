@@ -1,0 +1,50 @@
+server:
+  port: ${SERVER_PORT}
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: ai-agent-orchestrator
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  web:
+    resources:
+      static-locations: classpath:/META-INF/resources/,classpath:/resources/,classpath:/static/,classpath:/public/
+
+  ai:
+    openai:
+      api-key: ${ANYMODEL_API_KEY}
+      base-url: ${ANYMODEL_BASE_URL}
+      chat:
+        options:
+          model: cc/claude-sonnet-4-6
+          temperature: 0.3
+
+# Настройка сопоставления моделей для различных шагов агентов
+orchestrator:
+  models:
+    architect: "cc/claude-sonnet-4-6"
+    worker: "ag/gemini-3.7-flash-high"
+    tester: "ag/gemini-3.7-flash-high"
+    helper: "ag/gemini-3.6-flash-high"
+
+logging:
+  level:
+    root: INFO
+    ru.sergalas.orchestrator: DEBUG
+    org.springframework.ai: INFO

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="dialog-chain">
+    <div class="timeline">
+        <div th:if="${#lists.isEmpty(steps)}" class="time-label">
+            <span class="bg-gray">Шаги еще не выполнялись</span>
+        </div>
+
+        <div th:each="step : ${steps}">
+            <i class="fas fa-robot bg-blue"
+               th:classappend="${step.stepName.name() == 'ARCHITECT'} ? ' bg-purple' :
+                              (${step.stepName.name() == 'WORKER'} ? ' bg-primary' :
+                              (${step.stepName.name() == 'TESTER'} ? ' bg-success' : ' bg-warning'))"></i>
+            <div class="timeline-item shadow-sm">
+                <span class="time">
+                    <i class="fas fa-clock mr-1"></i>
+                    <span th:text="${#temporals.format(step.createdAt, 'yyyy-MM-dd HH:mm:ss')}">2025-01-01</span>
+                </span>
+                <h3 class="timeline-header">
+                    <span class="badge mr-2"
+                          th:classappend="'agent-badge-' + ${step.stepName.name()}"
+                          th:text="${step.stepName}">ROLE</span>
+                    Ответ агента
+                </h3>
+                <div class="timeline-body">
+                    <div th:if="${step.response != null and step.response.contains('CLARIFICATION_NEEDED:')}"
+                         class="alert alert-warning mb-3">
+                        <h5><i class="icon fas fa-question-circle"></i> Требуются уточнения:</h5>
+                        <p class="mb-0">Архитектор запросил дополнительные данные для продолжения работы.</p>
+                    </div>
+
+                    <pre class="pre-scrollable-custom" th:text="${step.response}">Результат работы агента...</pre>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <i class="fas fa-clock bg-gray"></i>
+        </div>
+    </div>
+</div>
+</body>
+</html>

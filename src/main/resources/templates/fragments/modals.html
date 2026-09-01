@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="modals">
+
+    <!-- Modal: Create Project -->
+    <div class="modal fade" id="modal-create-project">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="createProjectForm">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Создать новый проект</h4>
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="projectName">Название проекта <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="projectName" name="name" required placeholder="Например, Auth-Service">
+                        </div>
+                        <div class="form-group">
+                            <label for="projectDesc">Описание</label>
+                            <textarea class="form-control" id="projectDesc" name="description" rows="3" placeholder="Краткое назначение проекта"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer justify-content-between">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-success"><i class="fas fa-check mr-1"></i> Создать</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Upload File Context -->
+    <div class="modal fade" id="modal-upload-file">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="uploadFileForm">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Добавить файл в контекст</h4>
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="form-group">
+                                    <label for="ctxFileName">Имя файла <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="ctxFileName" name="fileName" required placeholder="specification.md, schema.sql, etc.">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="ctxFileType">Тип файла <span class="text-danger">*</span></label>
+                                    <select class="form-control" id="ctxFileType" name="fileType">
+                                        <option value="TASK">TASK</option>
+                                        <option value="CONTEXT_CODE">CONTEXT_CODE</option>
+                                        <option value="SPEC">SPEC</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="ctxFileContent">Содержимое файла <span class="text-danger">*</span></label>
+                            <textarea class="form-control font-monospace" id="ctxFileContent" name="fileContent" rows="10" required placeholder="Вставьте код или текст спецификации..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer justify-content-between">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Закрыть</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-upload mr-1"></i> Сохранить в проект</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

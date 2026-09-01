@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/main}">
+<head>
+    <title th:text="${currentProject != null} ? ${currentProject.name} : 'Workspace'">Рабочая область</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1 class="m-0" th:text="${currentProject != null} ? ${currentProject.name} : 'Выберите или создайте проект'">Рабочая область</h1>
+                </div>
+                <div class="col-sm-6 text-right" th:if="${currentProject != null}">
+                    <button class="btn btn-danger btn-sm" id="btnDeleteProject">
+                        <i class="fas fa-trash mr-1"></i> Удалить проект
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="content">
+        <div class="container-fluid">
+
+            <div th:if="${currentProject == null}" class="alert alert-info">
+                <h5><i class="icon fas fa-info"></i> Нет активного проекта</h5>
+                Создайте новый проект с помощью кнопки в левом меню для запуска агентных цепочек.
+            </div>
+
+            <div th:if="${currentProject != null}" class="row">
+                <!-- Left Column: Controls & Context -->
+                <div class="col-md-5">
+                    <!-- Orchestrator Launch Card -->
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-play-circle mr-1"></i> Запуск цепочки агентов</h3>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted text-sm">
+                                <strong>Пайплайн:</strong> ARCHITECT (Claude Sonnet) &rarr; WORKER (Gemini 3.7) &rarr; TESTER (Gemini 3.7) &rarr; HELPER (Gemini 3.6)
+                            </p>
+
+                            <div class="form-group">
+                                <label for="startFromRole">Начать с шага:</label>
+                                <select id="startFromRole" class="form-control form-control-sm">
+                                    <option value="ARCHITECT">Полная цепочка (с ARCHITECT)</option>
+                                    <option value="WORKER">WORKER (Генерация кода)</option>
+                                    <option value="TESTER">TESTER (Генерация тестов)</option>
+                                    <option value="HELPER">HELPER (Сборка & CI/CD)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="userClarification">Ответ на уточняющие вопросы (если требуется):</label>
+                                <textarea id="userClarification" class="form-control" rows="3" placeholder="Введите ответы на вопросы Архитектора..."></textarea>
+                            </div>
+
+                            <button id="btnRunChain" class="btn btn-primary btn-block">
+                                <i class="fas fa-cogs mr-1"></i> Запустить оркестрацию
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Context Files Fragment -->
+                    <div th:replace="~{fragments/file-upload :: file-upload}"></div>
+                </div>
+
+                <!-- Right Column: Agent Execution History -->
+                <div class="col-md-7">
+                    <div class="card card-outline card-success">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-stream mr-1"></i> Результаты работы агентов</h3>
+                        </div>
+                        <div class="card-body">
+                            <div th:replace="~{fragments/dialog-chain :: dialog-chain}"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+</div>
+
+<div layout:fragment="scripts">
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const currentProjectId = /*[[${currentProject != null ? currentProject.id : null}]]*/ null;
+
+        $(document).ready(function () {
+            // Create Project Submit
+            $('#createProjectForm').on('submit', function (e) {
+                e.preventDefault();
+                const payload = {
+                    name: $('#projectName').val(),
+                    description: $('#projectDesc').val()
+                };
+
+                $.ajax({
+                    url: '/api/projects',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function (res) {
+                        window.location.href = '/projects/' + res.id;
+                    },
+                    error: function (xhr) {
+                        alert('Ошибка создания проекта: ' + (xhr.responseJSON?.message || xhr.statusText));
+                    }
+                });
+            });
+
+            // Upload File Submit
+            $('#uploadFileForm').on('submit', function (e) {
+                e.preventDefault();
+                if (!currentProjectId) return;
+
+                const payload = {
+                    fileName: $('#ctxFileName').val(),
+                    fileType: $('#ctxFileType').val(),
+                    fileContent: $('#ctxFileContent').val()
+                };
+
+                $.ajax({
+                    url: '/api/projects/' + currentProjectId + '/files',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function () {
+                        location.reload();
+                    },
+                    error: function (xhr) {
+                        alert('Ошибка загрузки файла: ' + (xhr.responseJSON?.message || xhr.statusText));
+                    }
+                });
+            });
+
+            // Run Agent Chain
+            $('#btnRunChain').on('click', function () {
+                if (!currentProjectId) return;
+
+                const $btn = $(this);
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Выполнение цепочки...');
+
+                const payload = {
+                    projectId: currentProjectId,
+                    startFrom: $('#startFromRole').val(),
+                    userClarification: $('#userClarification').val()
+                };
+
+                $.ajax({
+                    url: '/api/projects/' + currentProjectId + '/run',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function (res) {
+                        location.reload();
+                    },
+                    error: function (xhr) {
+                        alert('Ошибка выполнения оркестрации: ' + (xhr.responseJSON?.message || xhr.statusText));
+                        $btn.prop('disabled', false).html('<i class="fas fa-cogs mr-1"></i> Запустить оркестрацию');
+                    }
+                });
+            });
+
+            // Delete Project
+            $('#btnDeleteProject').on('click', function () {
+                if (!currentProjectId) return;
+                if (!confirm('Вы уверены, что хотите удалить этот проект со всеми шагами и контекстом?')) return;
+
+                $.ajax({
+                    url: '/api/projects/' + currentProjectId,
+                    type: 'DELETE',
+                    success: function () {
+                        window.location.href = '/projects';
+                    },
+                    error: function (xhr) {
+                        alert('Ошибка удаления: ' + (xhr.responseJSON?.message || xhr.statusText));
+                    }
+                });
+            });
+        });
+        /*]]>*/
+    </script>
+</div>
+</body>
+</html>

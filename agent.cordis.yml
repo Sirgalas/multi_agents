@@ -1,0 +1,26 @@
+version: "1.0"
+agent:
+  id: cordis-orchestrator-agent
+  name: Cordis Orchestration Agent
+  provider: anymodel
+  config:
+    base_url: ${ANYMODEL_BASE_URL:-"https://anymodel.org/v1"}
+    api_key: ${ANYMODEL_API_KEY:-"changeme"}
+    timeout_seconds: 60
+  executors:
+    architect:
+      model: "cc/claude-sonnet-4-6"
+      temperature: 0.3
+      max_tokens: 8192
+    worker:
+      model: "ag/gemini-3.7-flash-high"
+      temperature: 0.2
+      max_tokens: 16384
+    tester:
+      model: "ag/gemini-3.7-flash-high"
+      temperature: 0.1
+      max_tokens: 8192
+    helper:
+      model: "ag/gemini-3.6-flash-high"
+      temperature: 0.2
+      max_tokens: 8192

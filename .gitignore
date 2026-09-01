@@ -1,0 +1,29 @@
+# Environment & secrets
+.env
+*.env
+!.env.example
+
+# Build outputs
+build/
+out/
+
+# Gradle cache & wrapper
+.gradle/
+gradle/
+
+# IDE files
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# Agent / local runtime
+.agents/
+
+# Docker
+docker/
+
+# OS files
+.DS_Store
+Thumbs.db
