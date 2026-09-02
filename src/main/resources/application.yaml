@@ -1,50 +1,63 @@
-server:
-  port: ${SERVER_PORT}
-  servlet:
-    context-path: /
-
 spring:
   application:
-    name: ai-agent-orchestrator
-
+    name: ai-orchestrator
+  
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-    username: ${POSTGRES_USER}
-    password: ${POSTGRES_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/orchestrator_db}
+    username: ${SPRING_DATASOURCE_USERNAME:orchestrator_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:strong_password_here}
     driver-class-name: org.postgresql.Driver
-
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+  
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+  
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  
+  thymeleaf:
+    cache: false
+    mode: HTML
+    encoding: UTF-8
 
-  web:
-    resources:
-      static-locations: classpath:/META-INF/resources/,classpath:/resources/,classpath:/static/,classpath:/public/
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /
+    session:
+      timeout: 30m
 
-  ai:
-    openai:
-      api-key: ${ANYMODEL_API_KEY}
-      base-url: ${ANYMODEL_BASE_URL}
-      chat:
-        options:
-          model: cc/claude-sonnet-4-6
-          temperature: 0.3
+anymodel:
+  api:
+    key: ${ANYMODEL_API_KEY:mock_key}
+    base:
+      url: ${ANYMODEL_BASE_URL:https://anymodel.org/v1}
 
-# Настройка сопоставления моделей для различных шагов агентов
-orchestrator:
-  models:
-    architect: "cc/claude-sonnet-4-6"
-    worker: "ag/gemini-3.7-flash-high"
-    tester: "ag/gemini-3.7-flash-high"
-    helper: "ag/gemini-3.6-flash-high"
+app:
+  admin:
+    user:
+      name: ${APP_ADMIN_USER_NAME:admin}
+      password: ${APP_ADMIN_USER_PASSWORD:admin123}
+  output:
+    directory: ${OUTPUT_DIR:./output}
 
 logging:
   level:
-    root: INFO
     ru.sergalas.orchestrator: DEBUG
+    org.springframework.security: INFO
     org.springframework.ai: INFO

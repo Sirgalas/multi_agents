@@ -10,6 +10,6 @@ import java.util.Optional;
 
 @Repository
 public interface AgentStepRepository extends JpaRepository<AgentStep, Long> {
-    List<AgentStep> findAllByProjectIdOrderByCreatedAtAsc(Long projectId);
-    Optional<AgentStep> findTopByProjectIdAndStepNameOrderByCreatedAtDesc(Long projectId, StepName stepName);
+    List<AgentStep> findByProjectIdOrderByCreatedAtAsc(Long projectId);
+    Optional<AgentStep> findFirstByProjectIdAndStepNameOrderByCreatedAtDesc(Long projectId, StepName stepName);
 }

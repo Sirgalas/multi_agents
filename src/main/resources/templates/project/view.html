@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/main}">
+<head>
+    <title>Project Details</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 th:text="${project.name}">Project Details</h2>
+        <div>
+            <a th:href="@{/projects/{id}/download(id=${project.id})}" class="btn btn-success"><i class="fas fa-file-archive"></i> Download ZIP Archive</a>
+            <a th:href="@{/projects}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to List</a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Conversation & Agent Pipeline -->
+        <div class="col-md-6">
+            <div class="card card-primary card-outline">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-network-wired"></i> Agent Execution Timeline</h3>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div th:each="step : ${steps}">
+                            <i class="fas" th:classappend="${step.stepStatus.name() == 'COMPLETED'} ? 'fa-check bg-success' : 'fa-spinner fa-spin bg-warning'"></i>
+                            <div class="timeline-item shadow-sm">
+                                <span class="time"><i class="fas fa-clock"></i> <span th:text="${#temporals.format(step.createdAt, 'HH:mm:ss')}"></span></span>
+                                <h3 class="timeline-header font-weight-bold" th:text="${step.stepName}">ARCHITECT</h3>
+                                <div class="timeline-body">
+                                    <p><b>Prompt/Task:</b> <span th:text="${step.prompt}"></span></p>
+                                    <div th:if="${step.response}" class="alert alert-secondary p-2 mt-2">
+                                        <small><pre style="white-space: pre-wrap; margin:0;" th:text="${step.response}"></pre></small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Generated Files / Artifacts -->
+        <div class="col-md-6">
+            <div class="card card-success card-outline">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-file-code"></i> Generated Artifacts</h3>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center" th:each="ctx : ${contexts}">
+                            <span>
+                                <i class="fas" th:classappend="${ctx.fileType.name() == 'SPEC'} ? 'fa-file-alt text-primary' : 'fa-file-code text-success'"></i>
+                                <b class="ml-2" th:text="${ctx.fileName}">src/main/java/...</b>
+                            </span>
+                            <span class="badge badge-secondary" th:text="${ctx.fileType}">CODE</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

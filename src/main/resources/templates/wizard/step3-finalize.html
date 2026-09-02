@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/main}">
+<head>
+    <title>Step 3: Finalize and Run</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="row justify-content-center">
+        <div class="col-md-9">
+            <div class="card card-primary card-outline shadow">
+                <div class="card-header">
+                    <h3 class="card-title font-weight-bold"><i class="fas fa-rocket text-primary"></i> Step 3: Configure MCP Guidelines & Launch Pipeline</h3>
+                </div>
+                <form th:action="@{/wizard/step3/create}" method="post">
+                    <div class="card-body">
+                        <div class="form-group mb-3">
+                            <label for="projectName">Project Name <span class="text-danger">*</span></label>
+                            <input type="text" id="projectName" name="name" class="form-control" th:value="${templateName}" placeholder="e.g. My Multi-Agent App" required>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="projectDesc">Project Description</label>
+                            <textarea id="projectDesc" name="description" class="form-control" rows="2" placeholder="Brief project overview..."></textarea>
+                        </div>
+
+                        <h5 class="mt-4 mb-2 font-weight-bold"><i class="fas fa-server text-info"></i> MCP Context7 Rule Servers:</h5>
+                        <p class="text-muted small">Select the coding guidelines and architecture rules that will be injected into Agent Prompts:</p>
+                        
+                        <div class="list-group mb-3">
+                            <label class="list-group-item d-flex gap-3" th:each="mcp, stat : ${defaultMcpServers}">
+                                <input class="form-check-input flex-shrink-0" type="checkbox" name="selectedMcpIndices" th:value="${stat.index}" th:checked="${mcp.isActive}">
+                                <span class="pt-1 form-checked-content ml-2">
+                                    <strong th:text="${mcp.name}">Spring Boot Guidelines</strong>
+                                    <small class="d-block text-muted" th:text="${mcp.serverUrl}">https://context7.com/spring-projects/spring-boot</small>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="card-footer d-flex justify-content-between">
+                        <a th:href="@{/wizard/step2}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Editor</a>
+                        <button type="submit" class="btn btn-success px-5 font-weight-bold"><i class="fas fa-play"></i> Launch Generation Pipeline</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

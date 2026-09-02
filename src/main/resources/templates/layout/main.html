@@ -1,38 +1,20 @@
 <!DOCTYPE html>
-<html lang="ru" xmlns:th="http://www.thymeleaf.org"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title layout:title-pattern="$LAYOUT_TITLE - $CONTENT_TITLE">Spring AI Multi-Agent Orchestrator</title>
+    <title layout:title-pattern="$LAYOUT_TITLE - $CONTENT_TITLE">AI Orchestrator</title>
 
     <!-- Google Font: Source Sans Pro -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
     <!-- Font Awesome -->
-    <link rel="stylesheet" th:href="@{/webjars/font-awesome/6.5.1/css/all.min.css}">
-    <!-- AdminLTE Theme style -->
-    <link rel="stylesheet" th:href="@{/webjars/admin-lte/3.2.0/dist/css/adminlte.min.css}">
-    <!-- Custom styling -->
-    <style>
-        .pre-scrollable-custom {
-            max-height: 450px;
-            overflow-y: auto;
-            background-color: #1e1e1e;
-            color: #dcdcdc;
-            padding: 15px;
-            border-radius: 4px;
-            font-family: Consolas, 'Courier New', monospace;
-            font-size: 13px;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-        .agent-badge-ARCHITECT { background-color: #6f42c1; color: white; }
-        .agent-badge-WORKER { background-color: #007bff; color: white; }
-        .agent-badge-TESTER { background-color: #28a745; color: white; }
-        .agent-badge-HELPER { background-color: #fd7e14; color: white; }
-        .cursor-pointer { cursor: pointer; }
-    </style>
+    <link rel="stylesheet" th:href="@{/webjars/font-awesome/6.5.2/css/all.min.css}">
+    <!-- Select2 -->
+    <link rel="stylesheet" th:href="@{/webjars/select2/4.0.13/css/select2.min.css}">
+    <!-- Theme style -->
+    <link rel="stylesheet" th:href="@{/webjars/AdminLTE/3.2.0/css/adminlte.min.css}">
+    <!-- SimpleMDE Markdown Editor -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
 <div class="wrapper">
@@ -44,20 +26,22 @@
                 <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
             </li>
             <li class="nav-item d-none d-sm-inline-block">
-                <a th:href="@{/projects}" class="nav-link">Главная</a>
+                <a th:href="@{/projects}" class="nav-link">Home</a>
+            </li>
+            <li class="nav-item d-none d-sm-inline-block">
+                <a th:href="@{/wizard/step1}" class="nav-link text-primary font-weight-bold"><i class="fas fa-magic"></i> New Project Wizard</a>
             </li>
         </ul>
 
         <ul class="navbar-nav ml-auto">
-            <li class="nav-item dropdown" sec:authorize="isAuthenticated()">
+            <li class="nav-item dropdown">
                 <a class="nav-link" data-toggle="dropdown" href="#">
-                    <i class="far fa-user mr-1"></i>
-                    <span sec:authentication="name">User</span>
+                    <i class="far fa-user"></i> <span sec:authentication="name">User</span>
                 </a>
                 <div class="dropdown-menu dropdown-menu-right">
                     <form th:action="@{/logout}" method="post">
                         <button type="submit" class="dropdown-item text-danger">
-                            <i class="fas fa-sign-out-alt mr-2"></i> Выйти
+                            <i class="fas fa-sign-out-alt mr-2"></i> Logout
                         </button>
                     </form>
                 </div>
@@ -65,34 +49,70 @@
         </ul>
     </nav>
 
-    <!-- Sidebar Fragment -->
-    <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+    <!-- Main Sidebar Container -->
+    <aside class="main-sidebar sidebar-dark-primary elevation-4">
+        <a th:href="@{/projects}" class="brand-link">
+            <span class="brand-text font-weight-light font-weight-bold ml-3"><i class="fas fa-robot text-primary"></i> AI Orchestrator</span>
+        </a>
+
+        <div class="sidebar">
+            <nav class="mt-2">
+                <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
+                    <li class="nav-item">
+                        <a th:href="@{/projects}" class="nav-link">
+                            <i class="nav-icon fas fa-folder"></i>
+                            <p>Projects</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a th:href="@{/wizard/step1}" class="nav-link">
+                            <i class="nav-icon fas fa-wand-magic-sparkles text-warning"></i>
+                            <p>3-Step Wizard</p>
+                        </a>
+                    </li>
+                    <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                        <a th:href="@{/admin/users}" class="nav-link">
+                            <i class="nav-icon fas fa-users-cog text-danger"></i>
+                            <p>User Management</p>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </aside>
 
     <!-- Content Wrapper -->
     <div class="content-wrapper">
-        <div layout:fragment="content">
-            <!-- Dynamic view injected here -->
-        </div>
+        <section class="content pt-3">
+            <div class="container-fluid">
+                <div layout:fragment="content">
+                    <!-- Page content injected here -->
+                </div>
+            </div>
+        </section>
     </div>
 
-    <!-- Modals Fragment -->
-    <div th:replace="~{fragments/modals :: modals}"></div>
-
-    <!-- Main Footer -->
-    <footer class="main-footer text-sm">
-        <strong>Spring AI Orchestrator &copy; 2025</strong> Multi-Agent Development Pipeline.
+    <footer class="main-footer">
+        <div class="float-right d-none d-sm-inline">
+            Java 21 LTS | Spring Boot 3.4
+        </div>
+        <strong>AI Orchestrator &copy; 2025</strong>
     </footer>
 </div>
 
 <!-- jQuery -->
 <script th:src="@{/webjars/jquery/3.7.1/jquery.min.js}"></script>
-<!-- Bootstrap 4 -->
-<script th:src="@{/webjars/bootstrap/4.6.2/js/bootstrap.bundle.min.js}"></script>
+<!-- Bootstrap 4 / 5 -->
+<script th:src="@{/webjars/bootstrap/5.3.3/js/bootstrap.bundle.min.js}"></script>
+<!-- Select2 -->
+<script th:src="@{/webjars/select2/4.0.13/js/select2.full.min.js}"></script>
 <!-- AdminLTE App -->
-<script th:src="@{/webjars/admin-lte/3.2.0/dist/js/adminlte.min.js}"></script>
+<script th:src="@{/webjars/AdminLTE/3.2.0/js/adminlte.min.js}"></script>
+<!-- SimpleMDE Editor -->
+<script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
 
-<div layout:fragment="scripts">
-    <!-- View-specific scripts -->
-</div>
+<th:block layout:fragment="scripts">
+    <!-- Extra scripts per page -->
+</th:block>
 </body>
 </html>

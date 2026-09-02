@@ -8,6 +8,6 @@ import java.util.List;
 
 @Repository
 public interface ProjectMcpServerRepository extends JpaRepository<ProjectMcpServer, Long> {
-    List<ProjectMcpServer> findAllByProjectIdOrderByCreatedAtAsc(Long projectId);
-    List<ProjectMcpServer> findAllByProjectIdAndActiveTrueOrderByCreatedAtAsc(Long projectId);
+    List<ProjectMcpServer> findByProjectId(Long projectId);
+    List<ProjectMcpServer> findByProjectIdAndIsActiveTrue(Long projectId);
 }

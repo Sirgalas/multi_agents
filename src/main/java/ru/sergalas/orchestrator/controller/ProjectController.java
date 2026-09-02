@@ -1,25 +1,25 @@
 package ru.sergalas.orchestrator.controller;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
-import ru.sergalas.orchestrator.dto.request.ProjectCreateRequest;
-import ru.sergalas.orchestrator.dto.response.ProjectResponse;
+import org.springframework.web.bind.annotation.*;
+import ru.sergalas.orchestrator.dto.request.ArchitectQuestionResponse;
+import ru.sergalas.orchestrator.entity.Project;
+import ru.sergalas.orchestrator.entity.User;
+import ru.sergalas.orchestrator.repository.ProjectContextRepository;
+import ru.sergalas.orchestrator.service.ArchiveService;
+import ru.sergalas.orchestrator.service.OrchestratorService;
 import ru.sergalas.orchestrator.service.ProjectService;
+import ru.sergalas.orchestrator.service.UserService;
 
-import java.util.List;
+import java.io.IOException;
 
 @Controller
 @RequestMapping("/projects")
@@ -27,50 +27,47 @@ import java.util.List;
 public class ProjectController {
 
     private final ProjectService projectService;
+    private final UserService userService;
+    private final OrchestratorService orchestratorService;
+    private final ArchiveService archiveService;
+    private final ProjectContextRepository contextRepository;
 
     @GetMapping
-    public String listProjects(Model model, Authentication auth) {
-        List<ProjectResponse> projects = projectService.getProjectsForUser(auth);
-        model.addAttribute("projects", projects);
-        return "projects/list";
-    }
-
-    @GetMapping("/api")
-    @ResponseBody
-    public ResponseEntity<List<ProjectResponse>> listProjectsApi(Authentication auth) {
-        return ResponseEntity.ok(projectService.getProjectsForUser(auth));
-    }
-
-    @PostMapping
-    public String createProjectForm(@Valid @ModelAttribute ProjectCreateRequest request, Authentication auth) {
-        projectService.createProject(request, auth);
-        return "redirect:/projects";
-    }
-
-    @PostMapping("/api")
-    @ResponseBody
-    public ResponseEntity<ProjectResponse> createProjectApi(@Valid @RequestBody ProjectCreateRequest request, Authentication auth) {
-        ProjectResponse response = projectService.createProject(request, auth);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    public String listProjects(@AuthenticationPrincipal UserDetails userDetails, Model model) {
+        User user = userService.findByUsername(userDetails.getUsername());
+        model.addAttribute("projects", projectService.findByUser(user.getId()));
+        return "project/list";
     }
 
     @GetMapping("/{id}")
-    public String viewProject(@PathVariable("id") Long id, Model model, Authentication auth) {
-        ProjectResponse project = projectService.getProjectById(id, auth);
+    public String viewProject(@PathVariable Long id, Model model) {
+        Project project = projectService.findById(id);
         model.addAttribute("project", project);
-        return "projects/view";
+        model.addAttribute("steps", project.getSteps());
+        model.addAttribute("contexts", contextRepository.findByProjectId(id));
+        model.addAttribute("status", orchestratorService.getProjectStatus(id));
+        return "project/view";
     }
 
-    @GetMapping("/{id}/api")
-    @ResponseBody
-    public ResponseEntity<ProjectResponse> viewProjectApi(@PathVariable("id") Long id, Authentication auth) {
-        return ResponseEntity.ok(projectService.getProjectById(id, auth));
+    @PostMapping("/{id}/continue")
+    public String continueProjectGeneration(@PathVariable Long id, @ModelAttribute ArchitectQuestionResponse questionResponse) {
+        questionResponse.setProjectId(id);
+        orchestratorService.continueGeneration(questionResponse);
+        return "redirect:/projects/" + id;
     }
 
-    @DeleteMapping("/{id}")
-    @ResponseBody
-    public ResponseEntity<Void> deleteProject(@PathVariable("id") Long id, Authentication auth) {
-        projectService.deleteProject(id, auth);
-        return ResponseEntity.noContent().build();
+    @GetMapping("/{id}/download")
+    public ResponseEntity<Resource> downloadProjectZip(@PathVariable Long id) throws IOException {
+        Resource archive = archiveService.getArchive(id);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"project_" + id + ".zip\"")
+                .body(archive);
+    }
+
+    @PostMapping("/{id}/delete")
+    public String deleteProject(@PathVariable Long id) {
+        projectService.deleteProject(id);
+        return "redirect:/projects";
     }
 }

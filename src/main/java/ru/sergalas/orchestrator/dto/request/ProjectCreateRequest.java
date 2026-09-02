@@ -1,12 +1,30 @@
 package ru.sergalas.orchestrator.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-public record ProjectCreateRequest(
+import java.util.ArrayList;
+import java.util.List;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ProjectCreateRequest {
+
     @NotBlank(message = "Project name is required")
-    @Size(max = 255, message = "Project name must not exceed 255 characters")
-    String name,
+    private String name;
 
-    String description
-) {}
+    private String description;
+
+    private Long taskTemplateId;
+
+    @NotBlank(message = "Task content cannot be empty")
+    private String taskContent;
+
+    @Builder.Default
+    private List<McpServerRequest> mcpServers = new ArrayList<>();
+}

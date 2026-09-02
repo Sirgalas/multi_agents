@@ -1,12 +1,14 @@
 package ru.sergalas.orchestrator.service;
 
 import ru.sergalas.orchestrator.dto.request.UserCreateRequest;
-import ru.sergalas.orchestrator.dto.response.UserResponse;
+import ru.sergalas.orchestrator.entity.User;
 
 import java.util.List;
 
 public interface UserService {
-    List<UserResponse> getAllUsers();
-    UserResponse createUser(UserCreateRequest request);
-    UserResponse getById(Long id);
+    List<User> findAll();
+    User findById(Long id);
+    User findByUsername(String username);
+    User createUser(UserCreateRequest request);
+    void deleteUser(Long id);
 }

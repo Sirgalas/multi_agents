@@ -1,22 +1,7 @@
 package ru.sergalas.orchestrator.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 import ru.sergalas.orchestrator.entity.enums.StepName;
 import ru.sergalas.orchestrator.entity.enums.StepStatus;
 
@@ -35,38 +20,26 @@ public class AgentStep {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "project_id", nullable = false)
     private Project project;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "step_name", nullable = false, length = 20)
+    @Column(name = "step_name", nullable = false, length = 50)
     private StepName stepName;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "step_status", nullable = false, length = 20)
+    @Column(name = "step_status", nullable = false, length = 50)
     @Builder.Default
     private StepStatus stepStatus = StepStatus.PENDING;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String prompt;
 
     @Column(columnDefinition = "TEXT")
     private String response;
 
-    @Column(name = "model_used", length = 64)
-    private String modelUsed;
-
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @Column(name = "completed_at")
-    private LocalDateTime completedAt;
-
-    @PrePersist
-    void prePersist() {
-        if (this.createdAt == null) {
-            this.createdAt = LocalDateTime.now();
-        }
-    }
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
 }
