@@ -14,25 +14,32 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class ProjectContext {
-
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+    
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "project_id", nullable = false)
     private Project project;
-
+    
     @Column(name = "file_name", nullable = false, length = 500)
     private String fileName;
-
-    @Column(name = "file_content", nullable = false, columnDefinition = "TEXT")
+    
+    @Column(name = "file_path", length = 1000)
+    private String filePath;
+    
+    @Column(name = "file_content", columnDefinition = "TEXT")
     private String fileContent;
-
+    
     @Enumerated(EnumType.STRING)
-    @Column(name = "file_type", nullable = false, length = 50)
+    @Column(name = "file_type", nullable = false)
     private FileType fileType;
-
+    
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer iteration = 1;
+    
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

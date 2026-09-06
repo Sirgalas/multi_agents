@@ -1,65 +1,190 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/main}">
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/main}">
 <head>
-    <title>Project Details</title>
+  <title th:text="'Проект: ' + ${project.name}"></title>
 </head>
 <body>
 <div layout:fragment="content">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 th:text="${project.name}">Project Details</h2>
-        <div>
-            <a th:href="@{/projects/{id}/download(id=${project.id})}" class="btn btn-success"><i class="fas fa-file-archive"></i> Download ZIP Archive</a>
-            <a th:href="@{/projects}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to List</a>
+  <div class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1 class="m-0" th:text="${project.name}"></h1>
         </div>
+        <div class="col-sm-6 text-right">
+          <form th:action="@{'/projects/' + ${project.id} + '/generate'}" method="post" class="d-inline">
+            <button type="submit" class="btn btn-success mr-2" th:disabled="${project.status == 'IN_PROGRESS'}">
+              <i class="fas fa-play"></i> Запустить конвейер
+            </button>
+          </form>
+          <a th:href="@{'/projects/' + ${project.id} + '/mcp'}" class="btn btn-outline-info mr-2">
+            <i class="fas fa-server"></i> MCP Серверы
+          </a>
+          <a th:if="${project.archivePath != null}" th:href="@{'/projects/' + ${project.id} + '/download'}" class="btn btn-primary">
+            <i class="fas fa-download"></i> Скачать ZIP
+          </a>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <div class="row">
-        <!-- Conversation & Agent Pipeline -->
-        <div class="col-md-6">
-            <div class="card card-primary card-outline">
-                <div class="card-header">
-                    <h3 class="card-title"><i class="fas fa-network-wired"></i> Agent Execution Timeline</h3>
-                </div>
-                <div class="card-body">
-                    <div class="timeline">
-                        <div th:each="step : ${steps}">
-                            <i class="fas" th:classappend="${step.stepStatus.name() == 'COMPLETED'} ? 'fa-check bg-success' : 'fa-spinner fa-spin bg-warning'"></i>
-                            <div class="timeline-item shadow-sm">
-                                <span class="time"><i class="fas fa-clock"></i> <span th:text="${#temporals.format(step.createdAt, 'HH:mm:ss')}"></span></span>
-                                <h3 class="timeline-header font-weight-bold" th:text="${step.stepName}">ARCHITECT</h3>
-                                <div class="timeline-body">
-                                    <p><b>Prompt/Task:</b> <span th:text="${step.prompt}"></span></p>
-                                    <div th:if="${step.response}" class="alert alert-secondary p-2 mt-2">
-                                        <small><pre style="white-space: pre-wrap; margin:0;" th:text="${step.response}"></pre></small>
-                                    </div>
-                                </div>
-                            </div>
+  <section class="content">
+    <div class="container-fluid">
+      <div class="row">
+        <!-- Информация о проекте -->
+        <div class="col-md-4">
+          <div class="card card-primary card-outline">
+            <div class="card-header">
+              <h3 class="card-title">Параметры</h3>
+            </div>
+            <div class="card-body box-profile">
+              <ul class="list-group list-group-unbordered mb-3">
+                <li class="list-group-item">
+                  <b>Статус:</b> 
+                  <span class="float-right badge" 
+                        th:classappend="${project.status == 'COMPLETED' ? 'badge-success' : (project.status == 'IN_PROGRESS' ? 'badge-primary' : (project.status == 'WAITING_FOR_INPUT' ? 'badge-warning' : 'badge-secondary'))}"
+                        th:text="${project.status}">
+                  </span>
+                </li>
+                <li class="list-group-item">
+                  <b>Создатель:</b> <span class="float-right" th:text="${project.user.username}"></span>
+                </li>
+                <li class="list-group-item">
+                  <b>Создан:</b> <span class="float-right" th:text="${#temporals.format(project.createdAt, 'dd.MM.yyyy HH:mm')}"></span>
+                </li>
+              </ul>
+              <p class="text-muted" th:text="${project.description}"></p>
+            </div>
+          </div>
+
+          <!-- HITL Блок вопросов -->
+          <div id="hitlCard" class="card card-warning card-outline d-none">
+            <div class="card-header">
+              <h3 class="card-title"><i class="fas fa-user-clock mr-2"></i> Вопросы Архитектора (HITL)</h3>
+            </div>
+            <div class="card-body">
+              <p>Архитектору требуются уточнения по ТЗ:</p>
+              <div id="questionsContainer"></div>
+              <button id="submitAnswersBtn" class="btn btn-warning btn-block mt-3"><i class="fas fa-reply"></i> Отправить ответы</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Шаги выполнения & Контекст файлов -->
+        <div class="col-md-8">
+          <div class="card card-tabs">
+            <div class="card-header p-0 pt-1 border-bottom-0">
+              <ul class="nav nav-tabs" role="tablist">
+                <li class="nav-item">
+                  <a class="nav-link active" data-toggle="pill" href="#stepsTab" role="tab">Шаги Агентов</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" data-toggle="pill" href="#filesTab" role="tab">Файлы проекта (<span th:text="${contexts.size()}"></span>)</a>
+                </li>
+              </ul>
+            </div>
+            <div class="card-body">
+              <div class="tab-content">
+                <!-- Вкладка шагов -->
+                <div class="tab-pane fade show active" id="stepsTab" role="tabpanel">
+                  <div class="timeline" th:if="${!steps.isEmpty()}">
+                    <div th:each="step : ${steps}">
+                      <i class="fas fa-robot bg-blue"></i>
+                      <div class="timeline-item">
+                        <span class="time"><i class="fas fa-clock"></i> <span th:text="${#temporals.format(step.createdAt, 'HH:mm:ss')}"></span></span>
+                        <h3 class="timeline-header"><b th:text="${step.stepName}"></b> — <span class="badge badge-info" th:text="${step.status}"></span></h3>
+                        <div class="timeline-body">
+                          <pre style="max-height: 250px; overflow-y: auto;" th:text="${step.response}"></pre>
                         </div>
+                      </div>
                     </div>
+                  </div>
+                  <p th:if="${steps.isEmpty()}" class="text-muted">Шаги генерации еще не запущены.</p>
                 </div>
+
+                <!-- Вкладка файлов -->
+                <div class="tab-pane fade" id="filesTab" role="tabpanel">
+                  <div class="accordion" id="filesAccordion">
+                    <div class="card" th:each="ctx, stat : ${contexts}">
+                      <div class="card-header" th:id="'heading' + ${ctx.id}">
+                        <h2 class="mb-0">
+                          <button class="btn btn-link btn-block text-left" type="button" data-toggle="collapse" th:data-target="'#collapse' + ${ctx.id}">
+                            <i class="fas fa-file-code mr-2"></i> <span th:text="${ctx.fileName}"></span>
+                            <span class="badge badge-secondary float-right" th:text="${ctx.fileType}"></span>
+                          </button>
+                        </h2>
+                      </div>
+                      <div th:id="'collapse' + ${ctx.id}" class="collapse" th:classappend="${stat.index == 0 ? 'show' : ''}" data-parent="#filesAccordion">
+                        <div class="card-body">
+                          <pre style="max-height: 400px; overflow-y: auto;"><code th:text="${ctx.fileContent}"></code></pre>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
             </div>
+          </div>
         </div>
 
-        <!-- Generated Files / Artifacts -->
-        <div class="col-md-6">
-            <div class="card card-success card-outline">
-                <div class="card-header">
-                    <h3 class="card-title"><i class="fas fa-file-code"></i> Generated Artifacts</h3>
-                </div>
-                <div class="card-body p-0">
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item d-flex justify-content-between align-items-center" th:each="ctx : ${contexts}">
-                            <span>
-                                <i class="fas" th:classappend="${ctx.fileType.name() == 'SPEC'} ? 'fa-file-alt text-primary' : 'fa-file-code text-success'"></i>
-                                <b class="ml-2" th:text="${ctx.fileName}">src/main/java/...</b>
-                            </span>
-                            <span class="badge badge-secondary" th:text="${ctx.fileType}">CODE</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+  </section>
+</div>
+
+<div layout:fragment="scripts">
+  <script th:inline="javascript">
+    var projectId = /*[[${project.id}]]*/ 0;
+    var currentQuestionId = null;
+
+    function checkHitlQuestions() {
+      $.getJSON('/api/projects/' + projectId + '/architect/questions', function(data) {
+        if (data && data.questions && data.questions.length > 0 && data.status === 'PENDING') {
+          currentQuestionId = data.questionId;
+          $('#hitlCard').removeClass('d-none');
+          var container = $('#questionsContainer');
+          container.empty();
+          data.questions.forEach(function(q, index) {
+            container.append(
+              '<div class="form-group">' +
+                '<label>' + (q.question || q.text) + '</label>' +
+                '<input type="text" class="form-control hitl-answer" data-qid="' + (q.id || index) + '" placeholder="Ваш ответ...">' +
+              '</div>'
+            );
+          });
+        }
+      });
+    }
+
+    $(document).ready(function() {
+      checkHitlQuestions();
+
+      $('#submitAnswersBtn').on('click', function() {
+        var answers = [];
+        $('.hitl-answer').each(function() {
+          answers.push({
+            id: $(this).data('qid').toString(),
+            answer: $(this).val()
+          });
+        });
+
+        $.ajax({
+          url: '/api/projects/' + projectId + '/architect/answers',
+          type: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify({ questionId: currentQuestionId, answers: answers }),
+          success: function() {
+            alert('Ответы отправлены! Конвейер возобновлен.');
+            window.location.reload();
+          },
+          error: function(err) {
+            alert('Ошибка отправки ответов: ' + err.responseText);
+          }
+        });
+      });
+    });
+  </script>
 </div>
 </body>
 </html>

@@ -2,6 +2,7 @@ package ru.sergalas.orchestrator.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import ru.sergalas.orchestrator.entity.Project;
 import ru.sergalas.orchestrator.entity.ProjectContext;
 import ru.sergalas.orchestrator.entity.enums.FileType;
 
@@ -10,7 +11,7 @@ import java.util.Optional;
 
 @Repository
 public interface ProjectContextRepository extends JpaRepository<ProjectContext, Long> {
-    List<ProjectContext> findByProjectId(Long projectId);
-    Optional<ProjectContext> findByProjectIdAndFileName(Long projectId, String fileName);
-    List<ProjectContext> findByProjectIdAndFileType(Long projectId, FileType fileType);
+    List<ProjectContext> findAllByProjectOrderByCreatedAtAsc(Project project);
+    List<ProjectContext> findAllByProjectAndFileType(Project project, FileType fileType);
+    Optional<ProjectContext> findFirstByProjectAndFileTypeOrderByIterationDesc(Project project, FileType fileType);
 }

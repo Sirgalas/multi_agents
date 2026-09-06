@@ -1,29 +1,38 @@
-# Environment & secrets
-.env
-*.env
-!.env.example
-
-# Build outputs
+HELP.md
+.gradle
 build/
-out/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
 
-# Gradle cache & wrapper
-.gradle/
-gradle/
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
 
-# IDE files
-.idea/
+### IntelliJ IDEA ###
+.idea
+*.iws
 *.iml
 *.ipr
-*.iws
+out/
+
+### NetBeans ###
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+### VS Code ###
 .vscode/
 
-# Agent / local runtime
-.agents/
-
-# Docker
-docker/
-
-# OS files
-.DS_Store
-Thumbs.db
+### Application Output ###
+output/
+docker/harness/data/

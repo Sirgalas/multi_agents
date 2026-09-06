@@ -1,54 +1,58 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AI Orchestrator | Log in</title>
-
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-    <link rel="stylesheet" th:href="@{/webjars/font-awesome/6.5.2/css/all.min.css}">
-    <link rel="stylesheet" th:href="@{/webjars/AdminLTE/3.2.0/css/adminlte.min.css}">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Вход | AI Orchestrator</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+  <link rel="stylesheet" th:href="@{/webjars/font-awesome/6.5.2/css/all.min.css}">
+  <link rel="stylesheet" th:href="@{/webjars/AdminLTE/3.2.0/dist/css/adminlte.min.css}">
 </head>
-<body class="hold-transition login-page bg-dark">
+<body class="hold-transition login-page">
 <div class="login-box">
-    <div class="card card-outline card-primary">
-        <div class="card-header text-center">
-            <a href="#" class="h1"><b>AI</b> Orchestrator</a>
-        </div>
-        <div class="card-body">
-            <p class="login-box-msg">Sign in to start multi-agent orchestration</p>
-
-            <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
-            <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
-
-            <form th:action="@{/login}" method="post">
-                <div class="input-group mb-3">
-                    <input type="text" name="username" class="form-control" placeholder="Username" required autofocus>
-                    <div class="input-group-append">
-                        <div class="input-group-text">
-                            <span class="fas fa-user"></span>
-                        </div>
-                    </div>
-                </div>
-                <div class="input-group mb-3">
-                    <input type="password" name="password" class="form-control" placeholder="Password" required>
-                    <div class="input-group-append">
-                        <div class="input-group-text">
-                            <span class="fas fa-lock"></span>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-primary btn-block">Sign In</button>
-                    </div>
-                </div>
-            </form>
-        </div>
+  <div class="card card-outline card-primary">
+    <div class="card-header text-center">
+      <a href="#" class="h1"><b>AI</b> Orchestrator</a>
     </div>
+    <div class="card-body">
+      <p class="login-box-msg">Войдите для начала работы</p>
+
+      <div th:if="${param.error}" class="alert alert-danger">
+        Неверное имя пользователя или пароль
+      </div>
+      <div th:if="${param.logout}" class="alert alert-success">
+        Вы успешно вышли из системы
+      </div>
+
+      <form th:action="@{/login}" method="post">
+        <div class="input-group mb-3">
+          <input type="text" name="username" class="form-control" placeholder="Имя пользователя" required autofocus>
+          <div class="input-group-append">
+            <div class="input-group-text">
+              <span class="fas fa-user"></span>
+            </div>
+          </div>
+        </div>
+        <div class="input-group mb-3">
+          <input type="password" name="password" class="form-control" placeholder="Пароль" required>
+          <div class="input-group-append">
+            <div class="input-group-text">
+              <span class="fas fa-lock"></span>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-12">
+            <button type="submit" class="btn btn-primary btn-block">Войти</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 
 <script th:src="@{/webjars/jquery/3.7.1/jquery.min.js}"></script>
 <script th:src="@{/webjars/bootstrap/5.3.3/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/webjars/AdminLTE/3.2.0/dist/js/adminlte.min.js}"></script>
 </body>
 </html>

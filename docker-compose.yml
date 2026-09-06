@@ -1,43 +1,44 @@
-version: '3.9'
-
 services:
   postgres:
     image: postgres:17-alpine
     container_name: orchestrator-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-orchestrator_db}
-      POSTGRES_USER: ${POSTGRES_USER:-orchestrator_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-strong_password_here}
+      POSTGRES_DB: ${POSTGRES_DB:-orchestrator}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_secure_password_here}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-orchestrator_user} -d ${POSTGRES_DB:-orchestrator_db}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
     networks:
       - orchestrator-network
 
   harness:
     build:
-      context: ./docker/harness
+      context: ${HARNESS_CONTEXT:-./docker/harness}
       dockerfile: Dockerfile
     container_name: orchestrator-harness
+    restart: unless-stopped
     environment:
-      ANYMODEL_API_KEY: ${ANYMODEL_API_KEY:-}
+      ANYMODEL_API_KEY: ${ANYMODEL_API_KEY:-mock_key}
       ANYMODEL_BASE_URL: ${ANYMODEL_BASE_URL:-https://anymodel.org/v1}
-      HARNESS_CONTEXT: ${HARNESS_CONTEXT:-/app/custom-config}
-      NODE_ENV: production
+      AGENTS_ALL_URL: ${AGENTS_ALL_URL:-https://anymodel.org/v1}
+      AGENTS_ALL_TOKEN: ${AGENTS_ALL_TOKEN:-mock_token}
     ports:
       - "3080:3080"
     volumes:
       - ./docker/harness/data:/root/.dsh
       - ./docker/harness/config:/app/custom-config
       - ./output:/output
-    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - orchestrator-network
 

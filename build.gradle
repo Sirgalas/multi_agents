@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'ru.sergalas'
-version = '1.0.0'
+version = '0.0.1-SNAPSHOT'
 
 java {
     toolchain {
@@ -22,10 +22,7 @@ configurations {
 repositories {
     mavenCentral()
     maven { url 'https://repo.spring.io/milestone' }
-}
-
-ext {
-    springAiVersion = '1.0.0-M5'
+    maven { url 'https://repo.spring.io/snapshot' }
 }
 
 dependencies {
@@ -35,19 +32,25 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
+    
+    // Spring AI
+    implementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter:1.0.0-M5'
+    
+    // Thymeleaf extras
     implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
     implementation 'nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect'
     
-    // Spring AI
-    implementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter'
-    
-    // Database & Flyway Migrations
-    implementation 'org.postgresql:postgresql'
+    // PostgreSQL & Flyway
+    runtimeOnly 'org.postgresql:postgresql'
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.flywaydb:flyway-database-postgresql'
     
-    // WebJars & Frontend UI Assets
-    implementation 'org.webjars:webjars-locator:0.52'
+    // JSON & Utilities
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    
+    // WebJars
+    implementation 'org.webjars:webjars-locator-core:0.55'
     implementation 'org.webjars:AdminLTE:3.2.0'
     implementation 'org.webjars:select2:4.0.13'
     implementation 'org.webjars.npm:icheck-bootstrap:3.0.1'
@@ -55,13 +58,14 @@ dependencies {
     implementation 'org.webjars:jquery:3.7.1'
     implementation 'org.webjars:bootstrap:5.3.3'
     
-    // Utilities & Code Generation
+    // Lombok
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
-    implementation 'com.fasterxml.jackson.core:jackson-databind'
-    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
     
-    // Testing Frameworks
+    // DevTools
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    
+    // Testing
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -69,7 +73,7 @@ dependencies {
 
 dependencyManagement {
     imports {
-        mavenBom "org.springframework.ai:spring-ai-bom:${springAiVersion}"
+        mavenBom "org.springframework.ai:spring-ai-bom:1.0.0-M5"
     }
 }
 

@@ -1,25 +1,26 @@
 package ru.sergalas.orchestrator.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import ru.sergalas.orchestrator.dto.request.ArchitectQuestionResponse;
+import ru.sergalas.orchestrator.entity.AgentStep;
 import ru.sergalas.orchestrator.entity.Project;
+import ru.sergalas.orchestrator.entity.ProjectContext;
 import ru.sergalas.orchestrator.entity.User;
-import ru.sergalas.orchestrator.repository.ProjectContextRepository;
-import ru.sergalas.orchestrator.service.ArchiveService;
-import ru.sergalas.orchestrator.service.OrchestratorService;
-import ru.sergalas.orchestrator.service.ProjectService;
-import ru.sergalas.orchestrator.service.UserService;
+import ru.sergalas.orchestrator.repository.AgentStepRepository;
+import ru.sergalas.orchestrator.service.orchestrator.OrchestratorService;
+import ru.sergalas.orchestrator.service.project.ProjectContextService;
+import ru.sergalas.orchestrator.service.project.ProjectService;
+import ru.sergalas.orchestrator.service.user.UserService;
 
-import java.io.IOException;
+import java.io.File;
+import java.util.List;
 
 @Controller
 @RequestMapping("/projects")
@@ -28,46 +29,53 @@ public class ProjectController {
 
     private final ProjectService projectService;
     private final UserService userService;
+    private final ProjectContextService projectContextService;
+    private final AgentStepRepository agentStepRepository;
     private final OrchestratorService orchestratorService;
-    private final ArchiveService archiveService;
-    private final ProjectContextRepository contextRepository;
 
     @GetMapping
-    public String listProjects(@AuthenticationPrincipal UserDetails userDetails, Model model) {
-        User user = userService.findByUsername(userDetails.getUsername());
-        model.addAttribute("projects", projectService.findByUser(user.getId()));
+    public String listProjects(Model model) {
+        User user = userService.getCurrentUser();
+        List<Project> projects = projectService.getProjectsForUser(user);
+        model.addAttribute("projects", projects);
         return "project/list";
     }
 
     @GetMapping("/{id}")
     public String viewProject(@PathVariable Long id, Model model) {
-        Project project = projectService.findById(id);
+        Project project = projectService.getProjectById(id);
+        List<ProjectContext> contexts = projectContextService.getContextByProject(project);
+        List<AgentStep> steps = agentStepRepository.findAllByProjectOrderByCreatedAtAsc(project);
+
         model.addAttribute("project", project);
-        model.addAttribute("steps", project.getSteps());
-        model.addAttribute("contexts", contextRepository.findByProjectId(id));
-        model.addAttribute("status", orchestratorService.getProjectStatus(id));
+        model.addAttribute("contexts", contexts);
+        model.addAttribute("steps", steps);
         return "project/view";
     }
 
-    @PostMapping("/{id}/continue")
-    public String continueProjectGeneration(@PathVariable Long id, @ModelAttribute ArchitectQuestionResponse questionResponse) {
-        questionResponse.setProjectId(id);
-        orchestratorService.continueGeneration(questionResponse);
+    @PostMapping("/{id}/generate")
+    public String triggerGeneration(@PathVariable Long id) {
+        orchestratorService.executePipeline(id);
         return "redirect:/projects/" + id;
     }
 
     @GetMapping("/{id}/download")
-    public ResponseEntity<Resource> downloadProjectZip(@PathVariable Long id) throws IOException {
-        Resource archive = archiveService.getArchive(id);
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"project_" + id + ".zip\"")
-                .body(archive);
-    }
+    public ResponseEntity<Resource> downloadArchive(@PathVariable Long id) {
+        Project project = projectService.getProjectById(id);
+        if (project.getArchivePath() == null) {
+            orchestratorService.archiveProject(id);
+            project = projectService.getProjectById(id);
+        }
 
-    @PostMapping("/{id}/delete")
-    public String deleteProject(@PathVariable Long id) {
-        projectService.deleteProject(id);
-        return "redirect:/projects";
+        File file = new File(project.getArchivePath());
+        if (!file.exists()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Resource resource = new FileSystemResource(file);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(resource);
     }
 }

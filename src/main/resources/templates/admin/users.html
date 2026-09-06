@@ -1,47 +1,96 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/main}">
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/main}">
 <head>
-    <title>User Management</title>
+  <title>Управление пользователями</title>
 </head>
 <body>
 <div layout:fragment="content">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>User Management</h2>
-        <a th:href="@{/admin/users/new}" class="btn btn-success"><i class="fas fa-user-plus"></i> Add User</a>
+  <div class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1 class="m-0">Управление Пользователями</h1>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <div class="card">
-        <div class="card-body p-0">
-            <table class="table table-striped projects">
+  <section class="content">
+    <div class="container-fluid">
+      <div class="row">
+        <!-- Список пользователей -->
+        <div class="col-md-8">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Зарегистрированные пользователи</h3>
+            </div>
+            <div class="card-body table-responsive p-0">
+              <table class="table table-hover">
                 <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>Username</th>
-                    <th>Role</th>
-                    <th>Created At</th>
-                    <th class="text-right">Actions</th>
+                  <th>ID</th>
+                  <th>Логин</th>
+                  <th>Роль</th>
+                  <th>Активен</th>
+                  <th>Создан</th>
+                  <th>Действия</th>
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="user : ${users}">
-                    <td th:text="${user.id}">1</td>
-                    <td th:text="${user.username}" class="font-weight-bold">admin</td>
-                    <td>
-                        <span class="badge" th:classappend="${user.role.name() == 'ROLE_ADMIN'} ? 'badge-danger' : 'badge-info'" th:text="${user.role}">ROLE_ADMIN</span>
-                    </td>
-                    <td th:text="${#temporals.format(user.createdAt, 'yyyy-MM-dd HH:mm')}">2025-01-01 12:00</td>
-                    <td class="text-right">
-                        <form th:action="@{/admin/users/{id}/delete(id=${user.id})}" method="post" style="display:inline;">
-                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this user?');">
-                                <i class="fas fa-trash"></i> Delete
-                            </button>
-                        </form>
-                    </td>
+                <tr th:each="u : ${users}">
+                  <td th:text="${u.id}"></td>
+                  <td><strong th:text="${u.username}"></strong></td>
+                  <td><span class="badge badge-info" th:text="${u.role}"></span></td>
+                  <td><span class="badge badge-success" th:text="${u.enabled ? 'Да' : 'Нет'}"></span></td>
+                  <td th:text="${#temporals.format(u.createdAt, 'dd.MM.yyyy HH:mm')}"></td>
+                  <td>
+                    <form th:action="@{'/admin/users/' + ${u.id} + '/delete'}" method="post" class="d-inline">
+                      <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить пользователя?')">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </form>
+                  </td>
                 </tr>
                 </tbody>
-            </table>
+              </table>
+            </div>
+          </div>
         </div>
+
+        <!-- Создание пользователя -->
+        <div class="col-md-4">
+          <div class="card card-primary card-outline">
+            <div class="card-header">
+              <h3 class="card-title">Создать пользователя</h3>
+            </div>
+            <form th:action="@{/admin/users}" th:object="${createUserRequest}" method="post">
+              <div class="card-body">
+                <div class="form-group">
+                  <label for="username">Имя пользователя</label>
+                  <input type="text" th:field="*{username}" class="form-control" id="username" required>
+                </div>
+                <div class="form-group">
+                  <label for="password">Пароль</label>
+                  <input type="password" th:field="*{password}" class="form-control" id="password" required>
+                </div>
+                <div class="form-group">
+                  <label for="role">Роль</label>
+                  <select th:field="*{role}" class="form-control" id="role">
+                    <option value="ROLE_USER">ROLE_USER</option>
+                    <option value="ROLE_ADMIN">ROLE_ADMIN</option>
+                  </select>
+                </div>
+              </div>
+              <div class="card-footer">
+                <button type="submit" class="btn btn-primary btn-block"><i class="fas fa-user-plus"></i> Создать</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </div>
     </div>
+  </section>
 </div>
 </body>
 </html>

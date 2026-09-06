@@ -13,25 +13,34 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class TaskTemplate {
-
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+    
     @Column(nullable = false)
     private String name;
-
+    
     @Column(columnDefinition = "TEXT")
     private String description;
-
+    
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
-
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "file_structure_template_id")
     private FileStructureTemplate fileStructureTemplate;
-
+    
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
+    
+    @Column(name = "updated_at")
+    @Builder.Default
+    private LocalDateTime updatedAt = LocalDateTime.now();
+    
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }
