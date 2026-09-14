@@ -1,13 +1,15 @@
 spring:
   application:
     name: ai-orchestrator
-  
+  ai:
+    openai:
+      api-key: ${ANYMODEL_API_KEY}
+      base-url: ${ANYMODEL_BASE_URL}
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/orchestrator}
-    username: ${POSTGRES_USER:postgres}
-    password: ${POSTGRES_PASSWORD:postgres_secure_password_here}
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
-  
   jpa:
     hibernate:
       ddl-auto: validate
@@ -16,47 +18,43 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
-  
   flyway:
     enabled: true
     baseline-on-migrate: true
     locations: classpath:db/migration
-
 server:
-  port: ${SERVER_PORT:8080}
+  port: ${SERVER_PORT}
   error:
     include-message: always
-
 anymodel:
   api:
-    key: ${ANYMODEL_API_KEY:mock_key}
+    key: ${ANYMODEL_API_KEY}
     base:
-      url: ${ANYMODEL_BASE_URL:https://anymodel.org/v1}
-
+      url: ${ANYMODEL_BASE_URL}
 agents:
   all:
-    url: ${AGENTS_ALL_URL:${anymodel.api.base.url}}
-    token: ${AGENTS_ALL_TOKEN:${anymodel.api.key}}
+    url: ${AGENTS_ALL_URL}
+    token: ${AGENTS_ALL_TOKEN}
   interviewer:
-    url: ${INTERVIEWER_URL:${agents.all.url}}
-    token: ${INTERVIEWER_TOKEN:${agents.all.token}}
-    model: ${INTERVIEWER_MODEL:ag/gemini-3.7-flash-high}
+    url: ${INTERVIEWER_URL}
+    token: ${INTERVIEWER_TOKEN}
+    model: ${INTERVIEWER_MODEL}
   architect:
-    url: ${ARCHITECT_URL:${agents.all.url}}
-    token: ${ARCHITECT_TOKEN:${agents.all.token}}
-    model: ${ARCHITECT_MODEL:cc/claude-sonnet-4-6}
+    url: ${ARCHITECT_URL}
+    token: ${ARCHITECT_TOKEN}
+    model: ${ARCHITECT_MODEL}
   worker:
-    url: ${WORKER_URL:${agents.all.url}}
-    token: ${WORKER_TOKEN:${agents.all.token}}
-    model: ${WORKER_MODEL:ag/gemini-3.7-flash-high}
+    url: ${WORKER_URL}
+    token: ${WORKER_TOKEN}
+    model: ${WORKER_MODEL}
   tester:
-    url: ${TESTER_URL:${agents.all.url}}
-    token: ${TESTER_TOKEN:${agents.all.token}}
-    model: ${TESTER_MODEL:ag/gemini-3.7-flash-high}
+    url: ${TESTER_URL}
+    token: ${TESTER_TOKEN}
+    model: ${TESTER_MODEL}
   helper:
-    url: ${HELPER_URL:${agents.all.url}}
-    token: ${HELPER_TOKEN:${agents.all.token}}
-    model: ${HELPER_MODEL:ag/gemini-3.6-flash-high}
+    url: ${HELPER_URL}
+    token: ${HELPER_TOKEN}
+    model: ${HELPER_MODEL}
 
 app:
   admin:
