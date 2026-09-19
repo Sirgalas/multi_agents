@@ -11,4 +11,5 @@ import java.util.List;
 public interface ProjectMcpServerRepository extends JpaRepository<ProjectMcpServer, Long> {
     List<ProjectMcpServer> findAllByProject(Project project);
     List<ProjectMcpServer> findAllByProjectAndIsActiveTrue(Project project);
+    boolean existsByProjectAndName(Project project, String name);
 }

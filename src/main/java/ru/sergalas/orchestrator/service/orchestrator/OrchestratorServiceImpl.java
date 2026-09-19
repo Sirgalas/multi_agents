@@ -1,6 +1,7 @@
 package ru.sergalas.orchestrator.service.orchestrator;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.sergalas.orchestrator.dto.response.ProjectArchiveResponse;
@@ -12,6 +13,7 @@ import ru.sergalas.orchestrator.service.project.ProjectService;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrchestratorServiceImpl implements OrchestratorService {
@@ -24,7 +26,30 @@ public class OrchestratorServiceImpl implements OrchestratorService {
 
     @Override
     public void executePipeline(Long projectId) {
-        pipelineExecutor.runPipeline(projectId);
+        executePipeline(projectId, "ARCHITECT");
+    }
+
+    @Override
+    public void executePipeline(Long projectId, String fromStep) {
+        String targetStep = (fromStep == null || fromStep.isBlank()) ? "ARCHITECT" : fromStep.trim().toUpperCase();
+        log.info("Executing pipeline for project ID: {} from step: {}", projectId, targetStep);
+        projectService.resetFromStep(projectId, targetStep);
+        if ("ARCHITECT".equals(targetStep)) {
+            pipelineExecutor.runPipeline(projectId);
+        } else {
+            pipelineExecutor.continueFromStep(projectId, targetStep);
+        }
+    }
+
+    @Override
+    public void approveSpecAndContinue(Long projectId) {
+        pipelineExecutor.continueDevelopment(projectId);
+    }
+
+    @Override
+    public void restartDevelopment(Long projectId) {
+        projectService.resetDevelopment(projectId);
+        pipelineExecutor.continueDevelopment(projectId);
     }
 
     @Override

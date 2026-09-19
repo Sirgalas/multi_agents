@@ -12,4 +12,6 @@ import java.util.Optional;
 public interface ArchitectQuestionRepository extends JpaRepository<ArchitectQuestion, Long> {
     List<ArchitectQuestion> findAllByProjectOrderByCreatedAtDesc(Project project);
     Optional<ArchitectQuestion> findFirstByProjectAndStatus(Project project, String status);
+    long countByProject(Project project);
+    void deleteAllByProject(Project project);
 }

@@ -1,8 +1,7 @@
-package ru.sergalas.orchestrator.service.agent;
+package ru.sergalas.orchestrator.service.agent.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +13,9 @@ import ru.sergalas.orchestrator.entity.enums.StepName;
 import ru.sergalas.orchestrator.entity.enums.StepStatus;
 import ru.sergalas.orchestrator.exception.AgentException;
 import ru.sergalas.orchestrator.repository.AgentStepRepository;
+import ru.sergalas.orchestrator.service.agent.AgentClientFactory;
+import ru.sergalas.orchestrator.service.agent.BaseAgentService;
+import ru.sergalas.orchestrator.service.agent.InterviewerService;
 import ru.sergalas.orchestrator.service.project.ProjectContextService;
 import ru.sergalas.orchestrator.service.project.ProjectService;
 
@@ -23,7 +25,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class InterviewerServiceImpl implements InterviewerService {
+public class InterviewerServiceImpl extends BaseAgentService implements InterviewerService {
 
     private final AgentClientFactory clientFactory;
     private final ProjectService projectService;
@@ -39,7 +41,7 @@ public class InterviewerServiceImpl implements InterviewerService {
                 project.getName() + "' и собрать исчерпывающие требования для ТЗ. Задавай вопросы последовательно и лаконично. Начни с приветствия и первого ключевого вопроса.";
 
         OpenAiChatModel chatModel = clientFactory.createClient(StepName.INTERVIEWER);
-        String initialQuestion = chatModel.call(new Prompt(systemPrompt)).getResult().getOutput().getContent();
+        String initialQuestion = executeLlmCall(chatModel, StepName.INTERVIEWER, systemPrompt);
 
         AgentStep step = AgentStep.builder()
                 .project(project)
@@ -78,7 +80,7 @@ public class InterviewerServiceImpl implements InterviewerService {
 
         try {
             OpenAiChatModel chatModel = clientFactory.createClient(StepName.INTERVIEWER);
-            String aiAnswer = chatModel.call(new Prompt(promptText)).getResult().getOutput().getContent();
+            String aiAnswer = executeLlmCall(chatModel, StepName.INTERVIEWER, promptText);
 
             boolean isFinal = aiAnswer.contains("FINAL_READY");
 
@@ -127,7 +129,7 @@ public class InterviewerServiceImpl implements InterviewerService {
                 "\nСоставь профессиональное, исчерпывающее Техническое Задание (ТЗ) в формате Markdown для проекта '" + project.getName() + "'. Включи стек: Java 21, Spring Boot 3, архитектуру, REST эндпоинты, сущности БД и критерии приемки.";
 
         OpenAiChatModel chatModel = clientFactory.createClient(StepName.INTERVIEWER);
-        String generatedMarkdown = chatModel.call(new Prompt(compilePrompt)).getResult().getOutput().getContent();
+        String generatedMarkdown = executeLlmCall(chatModel, StepName.INTERVIEWER, compilePrompt);
 
         contextService.saveFile(project, "TASK_DRAFT.md", "/TASK_DRAFT.md", generatedMarkdown, FileType.TASK_DRAFT, 1);
         contextService.saveFile(project, "TASK.md", "/TASK.md", generatedMarkdown, FileType.TASK, 1);

@@ -3,6 +3,7 @@ package ru.sergalas.orchestrator.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import ru.sergalas.orchestrator.entity.enums.McpTarget;
 import ru.sergalas.orchestrator.entity.enums.TransportType;
 
 import java.util.Map;
@@ -21,6 +22,10 @@ public class AddMcpServerRequest {
     
     private TransportType transportType = TransportType.SSE;
     
+    private McpTarget target = McpTarget.COMMON;
+
+    private String token;
+
     private Boolean isActive = true;
     
     private Map<String, Object> config;

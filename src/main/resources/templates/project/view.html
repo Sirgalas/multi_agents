@@ -7,20 +7,43 @@
 <div layout:fragment="content">
   <div class="content-header">
     <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
+      <div class="row mb-2 align-items-center">
+        <div class="col-md-3">
           <h1 class="m-0" th:text="${project.name}"></h1>
         </div>
-        <div class="col-sm-6 text-right">
-          <form th:action="@{'/projects/' + ${project.id} + '/generate'}" method="post" class="d-inline">
-            <button type="submit" class="btn btn-success mr-2" th:disabled="${project.status == 'IN_PROGRESS'}">
-              <i class="fas fa-play"></i> Запустить конвейер
+        <div class="col-md-9 text-right">
+          <!-- Форма генерации с выбором шага -->
+          <form th:action="@{'/projects/' + ${project.id} + '/generate'}" method="post" class="form-inline d-inline mr-2">
+            <div class="input-group input-group-sm mr-2" style="display: inline-flex; vertical-align: middle;">
+              <div class="input-group-prepend">
+                <span class="input-group-text bg-light text-muted"><i class="fas fa-step-forward mr-1"></i> Шаг:</span>
+              </div>
+              <select name="fromStep" class="custom-select custom-select-sm" style="min-width: 170px;">
+                <option value="">По умолчанию (Архитектор)</option>
+                <option value="ARCHITECT">1. Архитектор (Анализ ТЗ)</option>
+                <option th:if="${hasSpec}" value="BACKEND_ANALYST">2. Аналитик Бэкенда (API & БД)</option>
+                <option th:if="${hasBackendSpec}" value="FRONTEND_ANALYST">3. Аналитик Фронтенда (UI & Экраны)</option>
+                <option th:if="${hasBackendSpec}" value="BACKEND_DEVELOPER">4. Бэкенд (Java / Spring Boot)</option>
+                <option th:if="${hasFrontendSpec or hasBackendCode}" value="FRONTEND_DEVELOPER">5. Фронтенд (React / TS)</option>
+                <option th:if="${hasWorkerCode}" value="TESTER">6. Тестировщик (Tester: тесты)</option>
+                <option th:if="${hasWorkerCode}" value="HELPER">7. DevOps (Helper: манифесты)</option>
+                <option th:if="${hasWorkerCode}" value="ARCHIVE">8. Архиватор (Сборка ZIP)</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-success btn-sm font-weight-bold shadow-sm" th:disabled="${project.status == 'IN_PROGRESS'}">
+              <i class="fas fa-play mr-1"></i> Сгенерировать
             </button>
           </form>
-          <a th:href="@{'/projects/' + ${project.id} + '/mcp'}" class="btn btn-outline-info mr-2">
+
+          <form th:action="@{'/projects/' + ${project.id} + '/reset'}" method="post" class="d-inline" onsubmit="return confirm('Вы уверены, что хотите сбросить проект? Все сгенерированные файлы и шаги будут удалены, исходное ТЗ сохранится.');">
+            <button type="submit" class="btn btn-outline-danger btn-sm mr-2" th:disabled="${project.status == 'IN_PROGRESS'}">
+              <i class="fas fa-undo"></i> Сбросить проект
+            </button>
+          </form>
+          <a th:href="@{'/projects/' + ${project.id} + '/mcp'}" class="btn btn-outline-info btn-sm mr-2">
             <i class="fas fa-server"></i> MCP Серверы
           </a>
-          <a th:if="${project.archivePath != null}" th:href="@{'/projects/' + ${project.id} + '/download'}" class="btn btn-primary">
+          <a th:if="${project.archivePath != null}" th:href="@{'/projects/' + ${project.id} + '/download'}" class="btn btn-primary btn-sm">
             <i class="fas fa-download"></i> Скачать ZIP
           </a>
         </div>
@@ -57,6 +80,25 @@
             </div>
           </div>
 
+          <!-- Блок утверждения спецификаций Архитектора и Аналитиков -->
+          <div th:if="${canApproveSpec}" class="card card-success card-outline shadow-sm">
+            <div class="card-header">
+              <h3 class="card-title"><i class="fas fa-clipboard-check mr-2 text-success"></i> Спецификации готовы</h3>
+            </div>
+            <div class="card-body">
+              <p class="text-muted small mb-3">
+                Архитектор и аналитики сформировали спецификации проекта: 
+                <a href="#filesTab" onclick="openFilesTab(); return false;"><b>Файлы проекта</b></a> 
+                (<code>ARCHITECTURE_SPEC.md</code><span th:if="${hasBackendSpec}">, <code>BACKEND_SPEC.md</code></span><span th:if="${hasFrontendSpec}">, <code>FRONTEND_SPEC.md</code></span>).
+              </p>
+              <form th:action="@{'/projects/' + ${project.id} + '/approve-spec'}" method="post">
+                <button type="submit" class="btn btn-success btn-block font-weight-bold">
+                  <i class="fas fa-play mr-1"></i> Утвердить спецификации и начать разработку (Backend & Frontend)
+                </button>
+              </form>
+            </div>
+          </div>
+
           <!-- HITL Блок вопросов -->
           <div id="hitlCard" class="card card-warning card-outline d-none">
             <div class="card-header">
@@ -74,19 +116,21 @@
         <div class="col-md-8">
           <div class="card card-tabs">
             <div class="card-header p-0 pt-1 border-bottom-0">
-              <ul class="nav nav-tabs" role="tablist">
-                <li class="nav-item">
-                  <a class="nav-link active" data-toggle="pill" href="#stepsTab" role="tab">Шаги Агентов</a>
+              <ul class="nav nav-tabs" id="projectTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                  <a class="nav-link active" id="steps-tab" data-toggle="tab" data-bs-toggle="tab" href="#stepsTab" data-bs-target="#stepsTab" role="tab" aria-controls="stepsTab" aria-selected="true">Шаги Агентов</a>
                 </li>
-                <li class="nav-item">
-                  <a class="nav-link" data-toggle="pill" href="#filesTab" role="tab">Файлы проекта (<span th:text="${contexts.size()}"></span>)</a>
+                <li class="nav-item" role="presentation">
+                  <a class="nav-link" id="files-tab" data-toggle="tab" data-bs-toggle="tab" href="#filesTab" data-bs-target="#filesTab" role="tab" aria-controls="filesTab" aria-selected="false">
+                    Файлы проекта (<span th:text="${contexts.size()}"></span>)
+                  </a>
                 </li>
               </ul>
             </div>
             <div class="card-body">
               <div class="tab-content">
                 <!-- Вкладка шагов -->
-                <div class="tab-pane fade show active" id="stepsTab" role="tabpanel">
+                <div class="tab-pane fade show active" id="stepsTab" role="tabpanel" aria-labelledby="steps-tab">
                   <div class="timeline" th:if="${!steps.isEmpty()}">
                     <div th:each="step : ${steps}">
                       <i class="fas fa-robot bg-blue"></i>
@@ -103,18 +147,23 @@
                 </div>
 
                 <!-- Вкладка файлов -->
-                <div class="tab-pane fade" id="filesTab" role="tabpanel">
+                <div class="tab-pane fade" id="filesTab" role="tabpanel" aria-labelledby="files-tab">
                   <div class="accordion" id="filesAccordion">
                     <div class="card" th:each="ctx, stat : ${contexts}">
                       <div class="card-header" th:id="'heading' + ${ctx.id}">
                         <h2 class="mb-0">
-                          <button class="btn btn-link btn-block text-left" type="button" data-toggle="collapse" th:data-target="'#collapse' + ${ctx.id}">
+                          <button class="btn btn-link btn-block text-left" type="button" 
+                                  data-toggle="collapse" data-bs-toggle="collapse" 
+                                  th:data-target="'#collapse' + ${ctx.id}" th:data-bs-target="'#collapse' + ${ctx.id}"
+                                  th:aria-controls="'collapse' + ${ctx.id}">
                             <i class="fas fa-file-code mr-2"></i> <span th:text="${ctx.fileName}"></span>
                             <span class="badge badge-secondary float-right" th:text="${ctx.fileType}"></span>
                           </button>
                         </h2>
                       </div>
-                      <div th:id="'collapse' + ${ctx.id}" class="collapse" th:classappend="${stat.index == 0 ? 'show' : ''}" data-parent="#filesAccordion">
+                      <div th:id="'collapse' + ${ctx.id}" class="collapse" th:classappend="${stat.index == 0 ? 'show' : ''}" 
+                           data-parent="#filesAccordion" data-bs-parent="#filesAccordion"
+                           th:aria-labelledby="'heading' + ${ctx.id}">
                         <div class="card-body">
                           <pre style="max-height: 400px; overflow-y: auto;"><code th:text="${ctx.fileContent}"></code></pre>
                         </div>
@@ -138,6 +187,23 @@
     var projectId = /*[[${project.id}]]*/ 0;
     var currentQuestionId = null;
 
+    function openFilesTab() {
+      var tabLink = document.getElementById('files-tab') || document.querySelector('a[href="#filesTab"]');
+      if (!tabLink) return;
+
+      if (window.bootstrap && bootstrap.Tab) {
+        bootstrap.Tab.getOrCreateInstance(tabLink).show();
+      } else if (window.jQuery && $(tabLink).tab) {
+        $(tabLink).tab('show');
+      } else {
+        document.querySelectorAll('.nav-tabs .nav-link').forEach(function(el) { el.classList.remove('active'); });
+        tabLink.classList.add('active');
+        document.querySelectorAll('.tab-content .tab-pane').forEach(function(el) { el.classList.remove('show', 'active'); });
+        var pane = document.getElementById('filesTab');
+        if (pane) pane.classList.add('show', 'active');
+      }
+    }
+
     function checkHitlQuestions() {
       $.getJSON('/api/projects/' + projectId + '/architect/questions', function(data) {
         if (data && data.questions && data.questions.length > 0 && data.status === 'PENDING') {
@@ -158,6 +224,51 @@
     }
 
     $(document).ready(function() {
+      // Поддержка переключения вкладок (Bootstrap 5 / Bootstrap 4 + manual fallback)
+      $(document).on('click', '[data-toggle="tab"], [data-bs-toggle="tab"], [data-toggle="pill"], [data-bs-toggle="pill"]', function(e) {
+        e.preventDefault();
+        var targetSelector = $(this).attr('data-bs-target') || $(this).attr('data-target') || $(this).attr('href');
+        if (targetSelector && targetSelector.startsWith('#')) {
+          if (window.bootstrap && bootstrap.Tab) {
+            bootstrap.Tab.getOrCreateInstance(this).show();
+          } else if ($.fn.tab) {
+            $(this).tab('show');
+          } else {
+            $(this).closest('.nav').find('.nav-link').removeClass('active');
+            $(this).addClass('active');
+            var container = $(this).closest('.card').find('.tab-content');
+            container.find('.tab-pane').removeClass('show active');
+            $(targetSelector).addClass('show active');
+          }
+        }
+      });
+
+      // Поддержка аккордеона файлов (Bootstrap 5 / Bootstrap 4 + manual fallback)
+      $(document).on('click', '[data-toggle="collapse"], [data-bs-toggle="collapse"]', function(e) {
+        var targetSelector = $(this).attr('data-bs-target') || $(this).attr('data-target') || $(this).attr('href');
+        if (targetSelector && targetSelector.startsWith('#')) {
+          if (window.bootstrap && bootstrap.Collapse) {
+            var el = document.querySelector(targetSelector);
+            if (el) {
+              bootstrap.Collapse.getOrCreateInstance(el).toggle();
+            }
+          } else if ($.fn.collapse) {
+            $(targetSelector).collapse('toggle');
+          } else {
+            var parent = $(this).attr('data-bs-parent') || $(this).attr('data-parent');
+            if (parent) {
+              $(parent).find('.collapse.show').not(targetSelector).removeClass('show');
+            }
+            $(targetSelector).toggleClass('show');
+          }
+        }
+      });
+
+      // Авто-открытие вкладки, если в URL передан хэш (#filesTab)
+      if (window.location.hash === '#filesTab') {
+        openFilesTab();
+      }
+
       checkHitlQuestions();
 
       $('#submitAnswersBtn').on('click', function() {

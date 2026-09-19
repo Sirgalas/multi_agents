@@ -10,12 +10,14 @@ import ru.sergalas.orchestrator.dto.request.CreateProjectRequest;
 import ru.sergalas.orchestrator.dto.response.ProjectResponse;
 import ru.sergalas.orchestrator.entity.*;
 import ru.sergalas.orchestrator.entity.enums.FileType;
+import ru.sergalas.orchestrator.entity.enums.McpTarget;
+import ru.sergalas.orchestrator.entity.enums.ProjectStatus;
+import ru.sergalas.orchestrator.entity.enums.StepName;
+import ru.sergalas.orchestrator.entity.enums.TransportType;
 import ru.sergalas.orchestrator.exception.ProjectNotFoundException;
-import ru.sergalas.orchestrator.repository.FileStructureTemplateRepository;
-import ru.sergalas.orchestrator.repository.ProjectMcpServerRepository;
-import ru.sergalas.orchestrator.repository.ProjectRepository;
-import ru.sergalas.orchestrator.repository.TaskTemplateRepository;
+import ru.sergalas.orchestrator.repository.*;
 
+import java.io.File;
 import java.util.List;
 
 @Slf4j
@@ -28,8 +30,14 @@ public class ProjectServiceImpl implements ProjectService {
     private final FileStructureTemplateRepository fileStructureTemplateRepository;
     private final ProjectContextService projectContextService;
     private final ProjectMcpServerRepository projectMcpServerRepository;
+    private final McpServerRepository mcpServerRepository;
+    private final AgentStepRepository agentStepRepository;
+    private final ArchitectQuestionRepository architectQuestionRepository;
+    private final ProjectContextRepository projectContextRepository;
     private final McpProperties mcpProperties;
     private final ObjectMapper objectMapper;
+    private final AgentPromptRepository agentPromptRepository;
+    private final ProjectAgentPromptRepository projectAgentPromptRepository;
 
     @Override
     @Transactional
@@ -44,7 +52,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .name(request.getName())
                 .description(request.getDescription())
                 .taskTemplate(template)
-                .status("DRAFT")
+                .status(ProjectStatus.DRAFT)
                 .build();
 
         Project savedProject = projectRepository.save(project);
@@ -80,22 +88,110 @@ public class ProjectServiceImpl implements ProjectService {
             });
         }
 
-        // Connect Default MCP Servers if chosen
         if (request.getDefaultMcpServerNames() != null) {
             for (String serverName : request.getDefaultMcpServerNames()) {
-                mcpProperties.getDefaultServers().stream()
-                        .filter(s -> s.getName().equalsIgnoreCase(serverName))
-                        .findFirst()
-                        .ifPresent(cfg -> {
-                            ProjectMcpServer mcp = ProjectMcpServer.builder()
-                                    .project(savedProject)
-                                    .name(cfg.getName())
-                                    .serverUrl(cfg.getUrl())
-                                    .transportType(cfg.getTransport())
-                                    .isActive(true)
-                                    .build();
-                            projectMcpServerRepository.save(mcp);
-                        });
+                var dbServerOpt = mcpServerRepository != null ? mcpServerRepository.findByNameIgnoreCase(serverName) : java.util.Optional.<McpServer>empty();
+                if (dbServerOpt.isPresent()) {
+                    var srv = dbServerOpt.get();
+                    if (!projectMcpServerRepository.existsByProjectAndName(savedProject, srv.getName())) {
+                        ProjectMcpServer mcp = ProjectMcpServer.builder()
+                                .project(savedProject)
+                                .name(srv.getName())
+                                .serverUrl(srv.getUrl())
+                                .transportType(TransportType.SSE)
+                                .target(srv.getTarget() != null ? srv.getTarget() : McpTarget.COMMON)
+                                .token(srv.getToken())
+                                .isActive(true)
+                                .build();
+                        projectMcpServerRepository.save(mcp);
+                    }
+                } else if (mcpProperties != null && mcpProperties.getDefaultServers() != null) {
+                    mcpProperties.getDefaultServers().stream()
+                            .filter(s -> s.getName().equalsIgnoreCase(serverName))
+                            .findFirst()
+                            .ifPresent(cfg -> {
+                                if (!projectMcpServerRepository.existsByProjectAndName(savedProject, cfg.getName())) {
+                                    ProjectMcpServer mcp = ProjectMcpServer.builder()
+                                             .project(savedProject)
+                                             .name(cfg.getName())
+                                             .serverUrl(cfg.getUrl())
+                                             .transportType(cfg.getTransport())
+                                             .target(cfg.getTarget() != null ? cfg.getTarget() : McpTarget.COMMON)
+                                             .isActive(true)
+                                             .build();
+                                    projectMcpServerRepository.save(mcp);
+                                }
+                            });
+                }
+            }
+        }
+
+        // Connect MCP Servers by ID if chosen
+        if (request.getMcpServerIds() != null && mcpServerRepository != null) {
+            for (Long srvId : request.getMcpServerIds()) {
+                mcpServerRepository.findById(srvId).ifPresent(srv -> {
+                    if (!projectMcpServerRepository.existsByProjectAndName(savedProject, srv.getName())) {
+                        ProjectMcpServer mcp = ProjectMcpServer.builder()
+                                .project(savedProject)
+                                .name(srv.getName())
+                                .serverUrl(srv.getUrl())
+                                .transportType(TransportType.SSE)
+                                .target(srv.getTarget() != null ? srv.getTarget() : McpTarget.COMMON)
+                                .token(srv.getToken())
+                                .isActive(true)
+                                .build();
+                        projectMcpServerRepository.save(mcp);
+                    }
+                });
+            }
+        }
+
+        // Connect Agent Prompts & their MCP Servers
+        if (agentPromptRepository != null && projectAgentPromptRepository != null) {
+            List<StepName> stepsToConfigure = List.of(
+                    StepName.ARCHITECT,
+                    StepName.BACKEND_ANALYST,
+                    StepName.FRONTEND_ANALYST,
+                    StepName.BACKEND_DEVELOPER,
+                    StepName.FRONTEND_DEVELOPER,
+                    StepName.TESTER,
+                    StepName.HELPER
+            );
+
+            for (StepName step : stepsToConfigure) {
+                AgentPrompt selectedPrompt = null;
+                if (request.getPromptIds() != null && request.getPromptIds().get(step) != null) {
+                    Long promptId = request.getPromptIds().get(step);
+                    selectedPrompt = agentPromptRepository.findById(promptId).orElse(null);
+                }
+                if (selectedPrompt == null) {
+                    selectedPrompt = agentPromptRepository.findFirstByStepNameAndIsDefaultTrue(step).orElse(null);
+                }
+                if (selectedPrompt != null) {
+                    ProjectAgentPrompt pap = ProjectAgentPrompt.builder()
+                            .project(savedProject)
+                            .stepName(step)
+                            .agentPrompt(selectedPrompt)
+                            .build();
+                    projectAgentPromptRepository.save(pap);
+
+                    if (selectedPrompt.getMcpServers() != null && projectMcpServerRepository != null) {
+                        for (McpServer srv : selectedPrompt.getMcpServers()) {
+                            if (!projectMcpServerRepository.existsByProjectAndName(savedProject, srv.getName())) {
+                                ProjectMcpServer mcp = ProjectMcpServer.builder()
+                                        .project(savedProject)
+                                        .name(srv.getName())
+                                        .serverUrl(srv.getUrl())
+                                        .transportType(TransportType.SSE)
+                                        .target(srv.getTarget() != null ? srv.getTarget() : McpTarget.COMMON)
+                                        .token(srv.getToken())
+                                        .isActive(true)
+                                        .build();
+                                projectMcpServerRepository.save(mcp);
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -123,7 +219,7 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     @Transactional
-    public void updateStatus(Long projectId, String status) {
+    public void updateStatus(Long projectId, ProjectStatus status) {
         Project project = getProjectById(projectId);
         project.setStatus(status);
         projectRepository.save(project);
@@ -147,5 +243,140 @@ public class ProjectServiceImpl implements ProjectService {
     @Transactional
     public void deleteProject(Long id) {
         projectRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional
+    public void resetProject(Long id) {
+        Project project = getProjectById(id);
+        log.info("Resetting project ID: {} ({})", id, project.getName());
+
+        // 1. Delete agent steps
+        agentStepRepository.deleteAllByProject(project);
+
+        // 2. Delete architect questions
+        architectQuestionRepository.deleteAllByProject(project);
+
+        // 3. Delete all project contexts except original TASK.md
+        projectContextRepository.deleteAllByProjectAndFileTypeNot(project, FileType.TASK);
+
+        // 4. Delete physical zip archive if present
+        if (project.getArchivePath() != null) {
+            try {
+                File archiveFile = new File(project.getArchivePath());
+                if (archiveFile.exists()) {
+                    archiveFile.delete();
+                }
+            } catch (Exception e) {
+                log.warn("Failed to delete physical archive file: {}", e.getMessage());
+            }
+            project.setArchivePath(null);
+        }
+
+        // 5. Reset status to DRAFT
+        project.setStatus(ProjectStatus.DRAFT);
+        projectRepository.save(project);
+        log.info("Project ID: {} successfully reset to DRAFT state", id);
+    }
+
+    @Override
+    @Transactional
+    public void resetDevelopment(Long id) {
+        resetFromStep(id, "BACKEND_DEVELOPER");
+    }
+
+    @Override
+    @Transactional
+    public void resetFromStep(Long id, String stepName) {
+        Project project = getProjectById(id);
+        String step = (stepName == null || stepName.isBlank()) ? "ARCHITECT" : stepName.trim().toUpperCase();
+        log.info("Resetting project ID: {} from step: {}", id, step);
+
+        // 1. Очищаем физический архив, если он есть
+        if (project.getArchivePath() != null) {
+            try {
+                File archiveFile = new File(project.getArchivePath());
+                if (archiveFile.exists()) {
+                    archiveFile.delete();
+                }
+            } catch (Exception e) {
+                log.warn("Failed to delete physical archive file: {}", e.getMessage());
+            }
+            project.setArchivePath(null);
+        }
+
+        // 2. Сбрасываем шаги и контексты в зависимости от точки входа
+        switch (step) {
+            case "ARCHITECT" -> {
+                agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
+                        List.of(StepName.ARCHITECT, StepName.BACKEND_ANALYST, StepName.FRONTEND_ANALYST, 
+                                StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.WORKER, StepName.TESTER, StepName.HELPER));
+                architectQuestionRepository.deleteAllByProject(project);
+                projectContextRepository.deleteAllByProjectAndFileType(project, FileType.SPEC);
+                projectContextRepository.deleteAllByProjectAndFileType(project, FileType.CONTEXT_CODE);
+                project.setStatus(ProjectStatus.IN_PROGRESS);
+            }
+            case "BACKEND_ANALYST" -> {
+                agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
+                        List.of(StepName.BACKEND_ANALYST, StepName.FRONTEND_ANALYST, 
+                                StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.WORKER, StepName.TESTER, StepName.HELPER));
+                projectContextRepository.deleteAllByProjectAndFileNameIn(project, 
+                        List.of("BACKEND_SPEC.md", "FRONTEND_SPEC.md"));
+                projectContextRepository.deleteAllByProjectAndFileType(project, FileType.CONTEXT_CODE);
+                project.setStatus(ProjectStatus.IN_PROGRESS);
+            }
+            case "FRONTEND_ANALYST" -> {
+                agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
+                        List.of(StepName.FRONTEND_ANALYST, 
+                                StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.WORKER, StepName.TESTER, StepName.HELPER));
+                projectContextRepository.deleteAllByProjectAndFileNameIn(project, 
+                        List.of("FRONTEND_SPEC.md"));
+                projectContextRepository.deleteAllByProjectAndFileType(project, FileType.CONTEXT_CODE);
+                project.setStatus(ProjectStatus.IN_PROGRESS);
+            }
+            case "BACKEND_DEVELOPER", "WORKER" -> {
+                agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
+                        List.of(StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.WORKER, StepName.TESTER, StepName.HELPER));
+                projectContextRepository.deleteAllByProjectAndFileType(project, FileType.CONTEXT_CODE);
+                project.setStatus(ProjectStatus.IN_PROGRESS);
+            }
+            case "FRONTEND_DEVELOPER" -> {
+                agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
+                        List.of(StepName.FRONTEND_DEVELOPER, StepName.TESTER, StepName.HELPER));
+                projectContextRepository.deleteAllByProjectAndFileNameIn(project, 
+                        List.of("GENERATED_FRONTEND_CODE.md", "GENERATED_TESTS.md", "GENERATED_INFRA.md"));
+                project.setStatus(ProjectStatus.IN_PROGRESS);
+            }
+            case "TESTER" -> {
+                agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
+                        List.of(StepName.TESTER, StepName.HELPER));
+                projectContextRepository.deleteAllByProjectAndFileNameIn(project, 
+                        List.of("GENERATED_TESTS.md", "GENERATED_INFRA.md"));
+                project.setStatus(ProjectStatus.IN_PROGRESS);
+            }
+            case "HELPER" -> {
+                agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
+                        List.of(StepName.HELPER));
+                projectContextRepository.deleteAllByProjectAndFileNameIn(project, 
+                        List.of("GENERATED_INFRA.md"));
+                project.setStatus(ProjectStatus.IN_PROGRESS);
+            }
+            case "ARCHIVE" -> {
+                project.setStatus(ProjectStatus.IN_PROGRESS);
+            }
+            default -> {
+                log.warn("Unknown step name '{}', defaulting to ARCHITECT reset", step);
+                agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
+                        List.of(StepName.ARCHITECT, StepName.BACKEND_ANALYST, StepName.FRONTEND_ANALYST, 
+                                StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.WORKER, StepName.TESTER, StepName.HELPER));
+                architectQuestionRepository.deleteAllByProject(project);
+                projectContextRepository.deleteAllByProjectAndFileType(project, FileType.SPEC);
+                projectContextRepository.deleteAllByProjectAndFileType(project, FileType.CONTEXT_CODE);
+                project.setStatus(ProjectStatus.IN_PROGRESS);
+            }
+        }
+
+        projectRepository.save(project);
+        log.info("Project ID: {} successfully prepared for execution from step: {}", id, step);
     }
 }

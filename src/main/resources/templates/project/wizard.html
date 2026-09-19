@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/main}">
+<head>
+  <title>Мастер создания проекта</title>
+</head>
+<body>
+<div layout:fragment="content">
+  <div class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1 class="m-0">4-Шаговый Мастер Создания Проекта</h1>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="content">
+    <div class="container-fluid">
+      <form th:action="@{/projects/new}" th:object="${projectRequest}" method="post" id="wizardForm">
+        
+        <!-- Шаг 1: Метаданные -->
+        <div class="card card-primary card-outline">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-info-circle mr-2"></i> Шаг 1: Основные сведения</h3>
+          </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label for="name">Название проекта <span class="text-danger">*</span></label>
+              <input type="text" th:field="*{name}" class="form-control" id="name" placeholder="Например: Banking Payment Service" required>
+            </div>
+            <div class="form-group">
+              <label for="description">Краткое описание</label>
+              <textarea th:field="*{description}" class="form-control" id="description" rows="2" placeholder="Микросервис обработки платежей..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Шаг 2: Шаблоны ТЗ и WYSIWYG Редактор -->
+        <div class="card card-success card-outline">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-file-alt mr-2"></i> Шаг 2: Выбор шаблона и редактирование ТЗ</h3>
+          </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label for="taskTemplateSelect">Готовые шаблоны ТЗ (Select2)</label>
+              <select id="taskTemplateSelect" th:field="*{taskTemplateId}" class="form-control select2" style="width: 100%;">
+                <option value="">-- Выберите готовый шаблон или введите ТЗ вручную --</option>
+                <option th:each="tpl : ${taskTemplates}" 
+                        th:value="${tpl.id}" 
+                        th:text="${tpl.name} + ' (' + ${tpl.description} + ')'"
+                        th:data-content="${tpl.content}">
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="taskContent">Техническое Задание (Markdown WYSIWYG Редактор) <span class="text-danger">*</span></label>
+              <textarea id="taskContent" th:field="*{taskContent}" class="form-control" rows="10"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Шаг 3: Роли ИИ-Агентов и Стек Разработки -->
+        <div class="card card-warning card-outline">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-users-cog mr-2"></i> Шаг 3: Команда ИИ-Агентов и Роли (AI Agents Team)</h3>
+          </div>
+          <div class="card-body">
+            <p class="text-muted">
+              Для каждого этапа генерации вы можете настроить индивидуальную роль агента, системный промпт и используемый стек технологий.
+            </p>
+
+            <!-- Быстрый выбор клиентского стека (React vs Flutter) -->
+            <div class="callout callout-info mb-4">
+              <h5 class="font-weight-bold text-dark"><i class="fas fa-magic text-info mr-1"></i> Быстрый выбор фронтенд-стека:</h5>
+              <p class="text-muted small mb-2">Выберите целевую платформу фронтенда — мы автоматически настроим роли Фронтенд-разработчика, Аналитика и соответствующие MCP серверы документации.</p>
+              <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                <label class="btn btn-outline-primary active" id="btnStackReact">
+                  <input type="radio" name="stackPreset" id="stackReact" autocomplete="off" checked>
+                  <i class="fab fa-react mr-1"></i> <strong>React / Next.js / TypeScript</strong> (Web & SSR)
+                </label>
+                <label class="btn btn-outline-info" id="btnStackFlutter">
+                  <input type="radio" name="stackPreset" id="stackFlutter" autocomplete="off">
+                  <i class="fas fa-mobile-alt mr-1"></i> <strong>Flutter / Dart</strong> (Кроссплатформенный Mobile)
+                </label>
+              </div>
+            </div>
+
+            <div class="row">
+              <!-- Архитектор -->
+              <div class="col-md-6 mb-3">
+                <div class="border rounded p-3 bg-light h-100">
+                  <label class="font-weight-bold text-dark">
+                    <i class="fas fa-drafting-compass text-primary mr-1"></i> 1. Архитектор ПО (Architect)
+                  </label>
+                  <select name="promptIds['ARCHITECT']" id="selectPromptArchitect" class="form-control select2" style="width: 100%;">
+                    <option th:each="p : ${promptsByStep['ARCHITECT']}"
+                            th:value="${p.id}"
+                            th:text="${p.name}"
+                            th:selected="${p.isDefault}"
+                            th:data-desc="${p.description}">
+                    </option>
+                  </select>
+                  <small class="text-muted d-block mt-1">Анализ требований, выявление неясностей через HITL-вопросы и архитектурная спецификация.</small>
+                </div>
+              </div>
+
+              <!-- Аналитик Бэкенда -->
+              <div class="col-md-6 mb-3">
+                <div class="border rounded p-3 bg-light h-100">
+                  <label class="font-weight-bold text-dark">
+                    <i class="fas fa-database text-info mr-1"></i> 2. Системный Аналитик Бэкенда (Backend Analyst)
+                  </label>
+                  <select name="promptIds['BACKEND_ANALYST']" id="selectPromptBackendAnalyst" class="form-control select2" style="width: 100%;">
+                    <option th:each="p : ${promptsByStep['BACKEND_ANALYST']}"
+                            th:value="${p.id}"
+                            th:text="${p.name}"
+                            th:selected="${p.isDefault}"
+                            th:data-desc="${p.description}">
+                    </option>
+                  </select>
+                  <small class="text-muted d-block mt-1">Детальная проработка REST API, реляционной схемы PostgreSQL, DTO и валидаций.</small>
+                </div>
+              </div>
+
+              <!-- Аналитик Фронтенда -->
+              <div class="col-md-6 mb-3">
+                <div class="border rounded p-3 bg-light h-100">
+                  <label class="font-weight-bold text-dark">
+                    <i class="fas fa-palette text-success mr-1"></i> 3. Системный Аналитик Фронтенда (Frontend Analyst)
+                  </label>
+                  <select name="promptIds['FRONTEND_ANALYST']" id="selectPromptFrontendAnalyst" class="form-control select2" style="width: 100%;">
+                    <option th:each="p : ${promptsByStep['FRONTEND_ANALYST']}"
+                            th:value="${p.id}"
+                            th:text="${p.name}"
+                            th:selected="${p.isDefault}"
+                            th:data-desc="${p.description}">
+                    </option>
+                  </select>
+                  <small class="text-muted d-block mt-1">Карта экранов, декомпозиция компонентов, состояния UI (Loading/Empty/Error) и API-маппинг.</small>
+                </div>
+              </div>
+
+              <!-- Бэкенд-разработчик -->
+              <div class="col-md-6 mb-3">
+                <div class="border rounded p-3 bg-light h-100">
+                  <label class="font-weight-bold text-dark">
+                    <i class="fas fa-cogs text-secondary mr-1"></i> 4. Бэкенд-разработчик (Backend Developer)
+                  </label>
+                  <select name="promptIds['BACKEND_DEVELOPER']" id="selectPromptBackendDev" class="form-control select2" style="width: 100%;">
+                    <option th:each="p : ${promptsByStep['BACKEND_DEVELOPER']}"
+                            th:value="${p.id}"
+                            th:text="${p.name}"
+                            th:selected="${p.isDefault}"
+                            th:data-desc="${p.description}">
+                    </option>
+                  </select>
+                  <small class="text-muted d-block mt-1">Генерация серверного кода в <code>backend/</code>: сущности JPA, миграции, репозитории, сервисы, контроллеры.</small>
+                </div>
+              </div>
+
+              <!-- Фронтенд-разработчик -->
+              <div class="col-md-6 mb-3">
+                <div class="border rounded p-3 bg-light h-100 border-primary shadow-sm">
+                  <label class="font-weight-bold text-primary">
+                    <i class="fas fa-code text-primary mr-1"></i> 5. Фронтенд-разработчик (Frontend Developer) <span class="badge badge-primary ml-1">Выбор стека</span>
+                  </label>
+                  <select name="promptIds['FRONTEND_DEVELOPER']" id="selectPromptFrontendDev" class="form-control select2" style="width: 100%;">
+                    <option th:each="p : ${promptsByStep['FRONTEND_DEVELOPER']}"
+                            th:value="${p.id}"
+                            th:text="${p.name}"
+                            th:selected="${p.isDefault}"
+                            th:data-desc="${p.description}">
+                    </option>
+                  </select>
+                  <small class="text-muted d-block mt-1">Генерация клиентского приложения в <code>frontend/</code>: компоненты, навигация, API-клиенты и стейт-менеджмент.</small>
+                </div>
+              </div>
+
+              <!-- Тестировщик -->
+              <div class="col-md-6 mb-3">
+                <div class="border rounded p-3 bg-light h-100">
+                  <label class="font-weight-bold text-dark">
+                    <i class="fas fa-vial text-danger mr-1"></i> 6. QA Automation Инженер (Tester)
+                  </label>
+                  <select name="promptIds['TESTER']" id="selectPromptTester" class="form-control select2" style="width: 100%;">
+                    <option th:each="p : ${promptsByStep['TESTER']}"
+                            th:value="${p.id}"
+                            th:text="${p.name}"
+                            th:selected="${p.isDefault}"
+                            th:data-desc="${p.description}">
+                    </option>
+                  </select>
+                  <small class="text-muted d-block mt-1">Генерация модульных и интеграционных тестов для серверного и клиентского кода.</small>
+                </div>
+              </div>
+
+              <!-- DevOps Инженер -->
+              <div class="col-md-12 mb-3">
+                <div class="border rounded p-3 bg-light h-100">
+                  <label class="font-weight-bold text-dark">
+                    <i class="fas fa-cubes text-dark mr-1"></i> 7. DevOps & Инфраструктура (Helper)
+                  </label>
+                  <select name="promptIds['HELPER']" id="selectPromptHelper" class="form-control select2" style="width: 100%;">
+                    <option th:each="p : ${promptsByStep['HELPER']}"
+                            th:value="${p.id}"
+                            th:text="${p.name}"
+                            th:selected="${p.isDefault}"
+                            th:data-desc="${p.description}">
+                    </option>
+                  </select>
+                  <small class="text-muted d-block mt-1">Dockerfiles для backend и frontend, docker-compose.yml, .gitignore и документация README.md.</small>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Шаг 4: Серверы MCP и Структура файлов -->
+        <div class="card card-info card-outline">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-network-wired mr-2"></i> Шаг 4: Архитектурные правила & MCP</h3>
+          </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label for="fileStructureTemplateSelect">Шаблон структуры каталогов</label>
+              <select id="fileStructureTemplateSelect" th:field="*{fileStructureTemplateId}" class="form-control select2" style="width: 100%;">
+                <option value="">-- Авто-генерация архитектора (если не выбрано) --</option>
+                <option th:each="fst : ${structureTemplates}" th:value="${fst.id}" th:text="${fst.name}"></option>
+              </select>
+            </div>
+
+            <!-- MCP СЕРВЕРЫ РАЗДЕЛЕНИЕ -->
+            <div class="form-group mt-3">
+              <label class="h6 font-weight-bold text-dark mb-1">
+                <i class="fas fa-cubes text-primary mr-1"></i> Подключить MCP-серверы документации & стандартов разработки (Context7)
+              </label>
+              <p class="text-muted small mb-3">
+                Выбранные серверы автоматически передаются соответствующим агентам: Бэкенд-серверы идут <code>Backend Developer</code>, а Фронтенд-серверы — <code>Frontend Developer</code>.
+              </p>
+
+              <!-- Секция 1: БЭКЕНД MCP-СЕРВЕРЫ -->
+              <div class="card card-outline card-primary mb-3">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                  <span class="font-weight-bold text-primary">
+                    <i class="fas fa-server mr-1"></i> Бэкенд & Архитектура (Backend)
+                    <span class="badge badge-primary ml-1" th:text="${#lists.size(backendMcpServers)}">4</span>
+                  </span>
+                  <div>
+                    <button type="button" class="btn btn-xs btn-outline-primary" id="selectAllBackendMcp">
+                      <i class="fas fa-check-square mr-1"></i>Выбрать все
+                    </button>
+                    <button type="button" class="btn btn-xs btn-outline-secondary ml-1" id="deselectAllBackendMcp">
+                      <i class="fas fa-square mr-1"></i>Снять все
+                    </button>
+                  </div>
+                </div>
+                <div class="card-body p-3">
+                  <div class="row">
+                    <div th:each="mcp : ${backendMcpServers}" class="col-md-6 mb-2">
+                      <div class="border rounded p-2 bg-light h-100 shadow-none">
+                        <div class="custom-control custom-checkbox">
+                          <input class="custom-control-input mcp-checkbox mcp-backend-checkbox" type="checkbox"
+                                 name="defaultMcpServerNames" th:value="${mcp.name}"
+                                 th:id="${'mcp_' + #strings.replace(mcp.name, ' ', '_')}" checked>
+                          <label class="custom-control-label font-weight-normal text-dark"
+                                 th:for="${'mcp_' + #strings.replace(mcp.name, ' ', '_')}" style="cursor: pointer;">
+                            <span class="font-weight-bold text-dark" th:text="${mcp.name}"></span>
+                            <span class="badge badge-primary badge-pill ml-1">BACKEND</span>
+                            <div class="text-muted small mt-1" th:if="${mcp.description != null}" th:text="${mcp.description}"></div>
+                            <small class="text-muted text-break d-block mt-1">
+                              <i class="fas fa-link mr-1"></i><span th:text="${mcp.url}"></span>
+                            </small>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Секция 2: ФРОНТЕНД & MOBILE MCP-СЕРВЕРЫ -->
+              <div class="card card-outline card-success mb-3">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                  <span class="font-weight-bold text-success">
+                    <i class="fas fa-laptop-code mr-1"></i> Фронтенд, Мобильные платформы & UI (Frontend)
+                    <span class="badge badge-success ml-1" th:text="${#lists.size(frontendMcpServers)}">9</span>
+                  </span>
+                  <div>
+                    <button type="button" class="btn btn-xs btn-outline-success" id="selectAllFrontendMcp">
+                      <i class="fas fa-check-square mr-1"></i>Выбрать все
+                    </button>
+                    <button type="button" class="btn btn-xs btn-outline-secondary ml-1" id="deselectAllFrontendMcp">
+                      <i class="fas fa-square mr-1"></i>Снять все
+                    </button>
+                  </div>
+                </div>
+                <div class="card-body p-3">
+                  <div class="row">
+                    <div th:each="mcp : ${frontendMcpServers}" class="col-md-6 mb-2">
+                      <div class="border rounded p-2 bg-light h-100 shadow-none">
+                        <div class="custom-control custom-checkbox">
+                          <input class="custom-control-input mcp-checkbox mcp-frontend-checkbox" type="checkbox"
+                                 name="defaultMcpServerNames" th:value="${mcp.name}"
+                                 th:id="${'mcp_' + #strings.replace(mcp.name, ' ', '_')}">
+                          <label class="custom-control-label font-weight-normal text-dark"
+                                 th:for="${'mcp_' + #strings.replace(mcp.name, ' ', '_')}" style="cursor: pointer;">
+                            <span class="font-weight-bold text-dark" th:text="${mcp.name}"></span>
+                            <span class="badge badge-success badge-pill ml-1">FRONTEND</span>
+                            <div class="text-muted small mt-1" th:if="${mcp.description != null}" th:text="${mcp.description}"></div>
+                            <small class="text-muted text-break d-block mt-1">
+                              <i class="fas fa-link mr-1"></i><span th:text="${mcp.url}"></span>
+                            </small>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Секция 3: ОБЩИЕ MCP-СЕРВЕРЫ (если есть) -->
+              <div class="card card-outline card-secondary mb-3" th:if="${commonMcpServers != null and !#lists.isEmpty(commonMcpServers)}">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                  <span class="font-weight-bold text-secondary">
+                    <i class="fas fa-globe mr-1"></i> Общие MCP-серверы (Common)
+                  </span>
+                  <div>
+                    <button type="button" class="btn btn-xs btn-outline-secondary" id="selectAllCommonMcp">
+                      <i class="fas fa-check-square mr-1"></i>Выбрать все
+                    </button>
+                    <button type="button" class="btn btn-xs btn-outline-secondary ml-1" id="deselectAllCommonMcp">
+                      <i class="fas fa-square mr-1"></i>Снять все
+                    </button>
+                  </div>
+                </div>
+                <div class="card-body p-3">
+                  <div class="row">
+                    <div th:each="mcp : ${commonMcpServers}" class="col-md-6 mb-2">
+                      <div class="border rounded p-2 bg-light h-100 shadow-none">
+                        <div class="custom-control custom-checkbox">
+                          <input class="custom-control-input mcp-checkbox mcp-common-checkbox" type="checkbox"
+                                 name="defaultMcpServerNames" th:value="${mcp.name}"
+                                 th:id="${'mcp_' + #strings.replace(mcp.name, ' ', '_')}">
+                          <label class="custom-control-label font-weight-normal text-dark"
+                                 th:for="${'mcp_' + #strings.replace(mcp.name, ' ', '_')}" style="cursor: pointer;">
+                            <span class="font-weight-bold text-dark" th:text="${mcp.name}"></span>
+                            <span class="badge badge-secondary badge-pill ml-1">COMMON</span>
+                            <div class="text-muted small mt-1" th:if="${mcp.description != null}" th:text="${mcp.description}"></div>
+                            <small class="text-muted text-break d-block mt-1">
+                              <i class="fas fa-link mr-1"></i><span th:text="${mcp.url}"></span>
+                            </small>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+          <div class="card-footer text-right">
+            <a th:href="@{/projects}" class="btn btn-secondary mr-2">Отмена</a>
+            <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> Создать Проект</button>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </section>
+</div>
+
+<div layout:fragment="scripts">
+  <script>
+    $(document).ready(function() {
+      $('.select2').select2({ theme: 'bootstrap4' });
+
+      var easyMDE = new EasyMDE({
+        element: document.getElementById('taskContent'),
+        spellChecker: false,
+        autosave: { enabled: true, uniqueId: "taskContent_autosave" },
+        placeholder: "Опишите функциональные и технические требования в формате Markdown..."
+      });
+
+      $('#taskTemplateSelect').on('change', function() {
+        var selectedOption = $(this).find('option:selected');
+        var content = selectedOption.data('content');
+        if (content) {
+          easyMDE.value(content);
+        }
+      });
+
+      $('#selectAllBackendMcp').on('click', function() {
+        $('.mcp-backend-checkbox').prop('checked', true);
+      });
+
+      $('#deselectAllBackendMcp').on('click', function() {
+        $('.mcp-backend-checkbox').prop('checked', false);
+      });
+
+      $('#selectAllFrontendMcp').on('click', function() {
+        $('.mcp-frontend-checkbox').prop('checked', true);
+      });
+
+      $('#deselectAllFrontendMcp').on('click', function() {
+        $('.mcp-frontend-checkbox').prop('checked', false);
+      });
+
+      $('#selectAllCommonMcp').on('click', function() {
+        $('.mcp-common-checkbox').prop('checked', true);
+      });
+
+      $('#deselectAllCommonMcp').on('click', function() {
+        $('.mcp-common-checkbox').prop('checked', false);
+      });
+
+      // Быстрое переключение React / Flutter
+      $('#btnStackReact').on('click', function() {
+        $('#btnStackReact').addClass('active').addClass('btn-primary').removeClass('btn-outline-primary');
+        $('#btnStackFlutter').removeClass('active').removeClass('btn-info').addClass('btn-outline-info');
+
+        $('#selectPromptFrontendDev option').each(function() {
+          if ($(this).text().indexOf('React') !== -1) {
+            $('#selectPromptFrontendDev').val($(this).val()).trigger('change');
+          }
+        });
+        $('#selectPromptFrontendAnalyst option').each(function() {
+          if ($(this).text().indexOf('React') !== -1) {
+            $('#selectPromptFrontendAnalyst').val($(this).val()).trigger('change');
+          }
+        });
+
+        $('.mcp-frontend-checkbox').each(function() {
+          var label = $(this).val();
+          if (label.indexOf('Flutter') !== -1 || label.indexOf('Dart') !== -1) {
+            $(this).prop('checked', false);
+          } else {
+            $(this).prop('checked', true);
+          }
+        });
+      });
+
+      $('#btnStackFlutter').on('click', function() {
+        $('#btnStackFlutter').addClass('active').addClass('btn-info').removeClass('btn-outline-info');
+        $('#btnStackReact').removeClass('active').removeClass('btn-primary').addClass('btn-outline-primary');
+
+        $('#selectPromptFrontendDev option').each(function() {
+          if ($(this).text().indexOf('Flutter') !== -1) {
+            $('#selectPromptFrontendDev').val($(this).val()).trigger('change');
+          }
+        });
+        $('#selectPromptFrontendAnalyst option').each(function() {
+          if ($(this).text().indexOf('Flutter') !== -1) {
+            $('#selectPromptFrontendAnalyst').val($(this).val()).trigger('change');
+          }
+        });
+
+        $('.mcp-frontend-checkbox').each(function() {
+          var label = $(this).val();
+          if (label.indexOf('Flutter') !== -1 || label.indexOf('Dart') !== -1) {
+            $(this).prop('checked', true);
+          } else {
+            $(this).prop('checked', false);
+          }
+        });
+      });
+    });
+  </script>
+</div>
+</body>
+</html>

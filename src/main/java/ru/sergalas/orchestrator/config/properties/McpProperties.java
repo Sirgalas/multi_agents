@@ -3,6 +3,7 @@ package ru.sergalas.orchestrator.config.properties;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
+import ru.sergalas.orchestrator.entity.enums.McpTarget;
 import ru.sergalas.orchestrator.entity.enums.TransportType;
 
 import java.util.ArrayList;
@@ -19,5 +20,7 @@ public class McpProperties {
         private String name;
         private String url;
         private TransportType transport = TransportType.SSE;
+        private boolean defaultSelected = false;
+        private McpTarget target = McpTarget.COMMON;
     }
 }

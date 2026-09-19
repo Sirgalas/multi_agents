@@ -3,9 +3,12 @@ package ru.sergalas.orchestrator.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import ru.sergalas.orchestrator.entity.enums.StepName;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class CreateProjectRequest {
@@ -27,4 +30,6 @@ public class CreateProjectRequest {
     private List<Long> mcpServerIds = new ArrayList<>();
     
     private List<String> defaultMcpServerNames = new ArrayList<>();
+
+    private Map<StepName, Long> promptIds = new HashMap<>();
 }

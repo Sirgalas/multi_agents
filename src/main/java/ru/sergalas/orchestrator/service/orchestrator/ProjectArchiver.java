@@ -17,7 +17,9 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -29,8 +31,7 @@ public class ProjectArchiver {
 
     private final String outputDirectory;
     private static final Pattern FILE_PATTERN = Pattern.compile(
-            "\\[FILE:\\s*([^\\]]+)\\]\\s*(?:```[a-zA-Z0-9_-]*\\n)?([\\s\\S]*?)(?:```|$)",
-            Pattern.MULTILINE
+            "\\[FILE:\\s*([^\\]]+)\\]\\s*(?:```[a-zA-Z0-9_-]*\\r?\\n([\\s\\S]*?)\\r?\\n```|([\\s\\S]*?)(?=\\[FILE:|\\Z))"
     );
 
     public ProjectArchiver(@Value("${app.output.directory:./output}") String outputDirectory) {
@@ -51,12 +52,24 @@ public class ProjectArchiver {
 
             List<GeneratedFile> files = extractFiles(contexts);
 
+            // Deduplicate files by normalized path to prevent ZipException duplicate entry
+            Map<String, GeneratedFile> deduplicatedFiles = new LinkedHashMap<>();
+            for (GeneratedFile file : files) {
+                if (file.getPath() == null) continue;
+                String cleanPath = file.getPath().replace("\\", "/").replaceAll("^/+", "").trim();
+                if (!cleanPath.isBlank()) {
+                    deduplicatedFiles.put(cleanPath, GeneratedFile.builder()
+                            .path(cleanPath)
+                            .content(file.getContent())
+                            .build());
+                }
+            }
+
             try (FileOutputStream fos = new FileOutputStream(zipFilePath.toFile());
                  ZipOutputStream zos = new ZipOutputStream(fos)) {
 
-                for (GeneratedFile file : files) {
-                    String cleanPath = file.getPath().replace("\\", "/").replaceAll("^/+", "");
-                    ZipEntry zipEntry = new ZipEntry(cleanPath);
+                for (GeneratedFile file : deduplicatedFiles.values()) {
+                    ZipEntry zipEntry = new ZipEntry(file.getPath());
                     zos.putNextEntry(zipEntry);
                     zos.write(file.getContent().getBytes(StandardCharsets.UTF_8));
                     zos.closeEntry();
@@ -92,7 +105,8 @@ public class ProjectArchiver {
             while (matcher.find()) {
                 matchedAny = true;
                 String relativePath = matcher.group(1).trim();
-                String fileContent = matcher.group(2).trim();
+                String rawContent = matcher.group(2) != null ? matcher.group(2) : (matcher.group(3) != null ? matcher.group(3) : "");
+                String fileContent = rawContent.trim();
                 files.add(GeneratedFile.builder()
                         .path(relativePath)
                         .content(fileContent)

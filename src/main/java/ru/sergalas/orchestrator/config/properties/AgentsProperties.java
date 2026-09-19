@@ -12,7 +12,11 @@ public class AgentsProperties {
     private AgentSettings all = new AgentSettings();
     private AgentSettings interviewer = new AgentSettings();
     private AgentSettings architect = new AgentSettings();
+    private AgentSettings backendAnalyst = new AgentSettings();
+    private AgentSettings frontendAnalyst = new AgentSettings();
     private AgentSettings worker = new AgentSettings();
+    private AgentSettings backendDeveloper = new AgentSettings();
+    private AgentSettings frontendDeveloper = new AgentSettings();
     private AgentSettings tester = new AgentSettings();
     private AgentSettings helper = new AgentSettings();
     

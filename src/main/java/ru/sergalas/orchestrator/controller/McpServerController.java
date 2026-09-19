@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.sergalas.orchestrator.dto.request.AddMcpServerRequest;
 import ru.sergalas.orchestrator.entity.Project;
 import ru.sergalas.orchestrator.entity.ProjectMcpServer;
-import ru.sergalas.orchestrator.service.mcp.Context7Service;
+import ru.sergalas.orchestrator.service.mcp.ProjectMcpServerService;
 import ru.sergalas.orchestrator.service.project.ProjectService;
 
 import java.util.List;
@@ -18,7 +18,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class McpServerController {
 
-    private final Context7Service context7Service;
+    private final ProjectMcpServerService context7Service;
     private final ProjectService projectService;
 
     @GetMapping

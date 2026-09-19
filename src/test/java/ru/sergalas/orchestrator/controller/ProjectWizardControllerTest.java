@@ -12,6 +12,7 @@ import ru.sergalas.orchestrator.config.properties.McpProperties;
 import ru.sergalas.orchestrator.dto.request.CreateProjectRequest;
 import ru.sergalas.orchestrator.entity.Project;
 import ru.sergalas.orchestrator.entity.User;
+import ru.sergalas.orchestrator.service.mcp.McpServerService;
 import ru.sergalas.orchestrator.service.project.FileStructureService;
 import ru.sergalas.orchestrator.service.project.ProjectService;
 import ru.sergalas.orchestrator.service.project.TaskTemplateService;
@@ -46,7 +47,13 @@ class ProjectWizardControllerTest {
     private McpProperties mcpProperties;
 
     @MockitoBean
+    private McpServerService mcpServerService;
+
+    @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private ru.sergalas.orchestrator.service.prompt.AgentPromptService agentPromptService;
 
     @Test
     @WithMockUser
@@ -55,12 +62,17 @@ class ProjectWizardControllerTest {
         when(taskTemplateService.getAllTemplates()).thenReturn(Collections.emptyList());
         when(fileStructureService.getAllTemplates()).thenReturn(Collections.emptyList());
         when(mcpProperties.getDefaultServers()).thenReturn(Collections.emptyList());
+        when(mcpServerService.getAllServers()).thenReturn(Collections.emptyList());
+        when(agentPromptService.getAllPrompts()).thenReturn(Collections.emptyList());
 
         mockMvc.perform(get("/projects/new"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("project/wizard"))
                 .andExpect(model().attributeExists("projectRequest"))
-                .andExpect(model().attributeExists("taskTemplates"));
+                .andExpect(model().attributeExists("taskTemplates"))
+                .andExpect(model().attributeExists("backendMcpServers"))
+                .andExpect(model().attributeExists("frontendMcpServers"))
+                .andExpect(model().attributeExists("promptsByStep"));
     }
 
     @Test

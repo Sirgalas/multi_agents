@@ -15,7 +15,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class Context7Service {
+public class ProjectMcpServerService {
 
     private final ProjectMcpServerRepository projectMcpServerRepository;
     private final ProjectService projectService;
@@ -29,6 +29,8 @@ public class Context7Service {
                 .name(request.getName())
                 .serverUrl(request.getServerUrl())
                 .transportType(request.getTransportType())
+                .target(request.getTarget() != null ? request.getTarget() : ru.sergalas.orchestrator.entity.enums.McpTarget.COMMON)
+                .token(request.getToken() != null && !request.getToken().isBlank() ? request.getToken().trim() : null)
                 .isActive(request.getIsActive())
                 .config(request.getConfig())
                 .build();

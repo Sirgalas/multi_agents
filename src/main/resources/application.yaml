@@ -3,12 +3,12 @@ spring:
     name: ai-orchestrator
   ai:
     openai:
-      api-key: ${ANYMODEL_API_KEY}
-      base-url: ${ANYMODEL_BASE_URL}
+      api-key: ${ANYMODEL_API_KEY:mock_key}
+      base-url: ${ANYMODEL_BASE_URL:https://anymodel.org/v1}
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${POSTGRES_USER}
-    password: ${POSTGRES_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/orchestrator}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:postgres_secure_password_here}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -23,38 +23,54 @@ spring:
     baseline-on-migrate: true
     locations: classpath:db/migration
 server:
-  port: ${SERVER_PORT}
+  port: ${SERVER_PORT:8080}
   error:
     include-message: always
 anymodel:
   api:
-    key: ${ANYMODEL_API_KEY}
+    key: ${ANYMODEL_API_KEY:mock_key}
     base:
-      url: ${ANYMODEL_BASE_URL}
+      url: ${ANYMODEL_BASE_URL:https://anymodel.org/v1}
 agents:
   all:
-    url: ${AGENTS_ALL_URL}
-    token: ${AGENTS_ALL_TOKEN}
+    url: ${AGENTS_ALL_URL:${anymodel.api.base.url}}
+    token: ${AGENTS_ALL_TOKEN:${anymodel.api.key}}
   interviewer:
-    url: ${INTERVIEWER_URL}
-    token: ${INTERVIEWER_TOKEN}
-    model: ${INTERVIEWER_MODEL}
+    url: ${INTERVIEWER_URL:${agents.all.url}}
+    token: ${INTERVIEWER_TOKEN:${agents.all.token}}
+    model: ${INTERVIEWER_MODEL:ag/gemini-3.7-flash-high}
   architect:
-    url: ${ARCHITECT_URL}
-    token: ${ARCHITECT_TOKEN}
-    model: ${ARCHITECT_MODEL}
+    url: ${ARCHITECT_URL:${agents.all.url}}
+    token: ${ARCHITECT_TOKEN:${agents.all.token}}
+    model: ${ARCHITECT_MODEL:cc/claude-sonnet-4-6}
+  backend-analyst:
+    url: ${BACKEND_ANALYST_URL:${agents.architect.url}}
+    token: ${BACKEND_ANALYST_TOKEN:${agents.architect.token}}
+    model: ${BACKEND_ANALYST_MODEL:${agents.architect.model}}
+  frontend-analyst:
+    url: ${FRONTEND_ANALYST_URL:${agents.architect.url}}
+    token: ${FRONTEND_ANALYST_TOKEN:${agents.architect.token}}
+    model: ${FRONTEND_ANALYST_MODEL:${agents.architect.model}}
   worker:
-    url: ${WORKER_URL}
-    token: ${WORKER_TOKEN}
-    model: ${WORKER_MODEL}
+    url: ${WORKER_URL:${agents.all.url}}
+    token: ${WORKER_TOKEN:${agents.all.token}}
+    model: ${WORKER_MODEL:ag/gemini-3.7-flash-high}
+  backend-developer:
+    url: ${BACKEND_DEVELOPER_URL:${agents.worker.url}}
+    token: ${BACKEND_DEVELOPER_TOKEN:${agents.worker.token}}
+    model: ${BACKEND_DEVELOPER_MODEL:${agents.worker.model}}
+  frontend-developer:
+    url: ${FRONTEND_DEVELOPER_URL:${agents.worker.url}}
+    token: ${FRONTEND_DEVELOPER_TOKEN:${agents.worker.token}}
+    model: ${FRONTEND_DEVELOPER_MODEL:${agents.worker.model}}
   tester:
-    url: ${TESTER_URL}
-    token: ${TESTER_TOKEN}
-    model: ${TESTER_MODEL}
+    url: ${TESTER_URL:${agents.all.url}}
+    token: ${TESTER_TOKEN:${agents.all.token}}
+    model: ${TESTER_MODEL:ag/gemini-3.7-flash-high}
   helper:
-    url: ${HELPER_URL}
-    token: ${HELPER_TOKEN}
-    model: ${HELPER_MODEL}
+    url: ${HELPER_URL:${agents.all.url}}
+    token: ${HELPER_TOKEN:${agents.all.token}}
+    model: ${HELPER_MODEL:ag/gemini-3.7-flash-high}
 
 app:
   admin:
@@ -66,15 +82,66 @@ app:
 
 mcp:
   default-servers:
+    # Backend & Database
     - name: "Spring Boot Guidelines"
       url: "https://context7.com/spring-projects/spring-boot"
       transport: SSE
+      default-selected: true
+      target: BACKEND
     - name: "Hibernate ORM Best Practices"
       url: "https://context7.com/hibernate/hibernate-orm"
       transport: SSE
+      default-selected: true
+      target: BACKEND
     - name: "Java Modern Conventions"
       url: "https://context7.com/java/openjdk"
       transport: SSE
+      default-selected: true
+      target: BACKEND
     - name: "PostgreSQL Best Practices"
       url: "https://context7.com/postgres/postgres"
       transport: SSE
+      default-selected: true
+      target: BACKEND
+
+    # Frontend (React & Web)
+    - name: "React Guidelines & Hooks"
+      url: "https://context7.com/facebook/react"
+      transport: SSE
+      target: FRONTEND
+    - name: "Next.js Fullstack Architecture"
+      url: "https://context7.com/vercel/next.js"
+      transport: SSE
+      target: FRONTEND
+
+    # Mobile (React Native, Flutter & Dart)
+    - name: "React Native Mobile Standards"
+      url: "https://context7.com/facebook/react-native"
+      transport: SSE
+      target: FRONTEND
+    - name: "Flutter Framework & UI Widgets"
+      url: "https://context7.com/flutter/flutter"
+      transport: SSE
+      target: FRONTEND
+    - name: "Dart Language Conventions"
+      url: "https://context7.com/dart-lang/sdk"
+      transport: SSE
+      target: FRONTEND
+
+    # Web Standards, Languages & Styling
+    - name: "TypeScript Strict Typing & Config"
+      url: "https://context7.com/microsoft/typescript"
+      transport: SSE
+      target: FRONTEND
+    - name: "JavaScript (ES6+ / Modern JS)"
+      url: "https://context7.com/tc39/ecma262"
+      transport: SSE
+      target: FRONTEND
+    - name: "HTML5 & Web Components"
+      url: "https://context7.com/whatwg/html"
+      transport: SSE
+      target: FRONTEND
+    - name: "CSS3 & Modern Styling (Tailwind / Flexbox / Grid)"
+      url: "https://context7.com/tailwindlabs/tailwindcss"
+      transport: SSE
+      target: FRONTEND

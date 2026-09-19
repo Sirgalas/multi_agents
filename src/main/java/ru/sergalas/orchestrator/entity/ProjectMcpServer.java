@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import ru.sergalas.orchestrator.entity.enums.McpTarget;
 import ru.sergalas.orchestrator.entity.enums.TransportType;
 
 import java.time.LocalDateTime;
@@ -36,6 +37,14 @@ public class ProjectMcpServer {
     @Column(name = "transport_type", nullable = false)
     @Builder.Default
     private TransportType transportType = TransportType.SSE;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "target", nullable = false)
+    @Builder.Default
+    private McpTarget target = McpTarget.COMMON;
+
+    @Column(name = "token", length = 1000)
+    private String token;
     
     @Column(name = "is_active", nullable = false)
     @Builder.Default
