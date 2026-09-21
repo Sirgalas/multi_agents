@@ -43,8 +43,8 @@ public class AgentClientFactory {
         OpenAiApi openAiApi = new OpenAiApi(config.getUrl(), config.getToken(), restClientBuilder, webClientBuilder);
         
         OpenAiChatOptions options = OpenAiChatOptions.builder()
-                .withModel(config.getModel())
-                .withTemperature(0.7)
+                .model(config.getModel())
+                .temperature(0.7)
                 .build();
         
         return new OpenAiChatModel(openAiApi, options);

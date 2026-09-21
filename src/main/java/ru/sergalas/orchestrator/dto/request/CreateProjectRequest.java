@@ -3,6 +3,7 @@ package ru.sergalas.orchestrator.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import ru.sergalas.orchestrator.entity.enums.ProjectType;
 import ru.sergalas.orchestrator.entity.enums.StepName;
 
 import java.util.ArrayList;
@@ -19,6 +20,8 @@ public class CreateProjectRequest {
     
     @Size(max = 5000, message = "Описание не должно превышать 5000 символов")
     private String description;
+
+    private ProjectType type = ProjectType.FULLSTACK;
     
     private Long taskTemplateId;
     

@@ -10,6 +10,7 @@ import ru.sergalas.orchestrator.entity.Project;
 import ru.sergalas.orchestrator.entity.ProjectContext;
 import ru.sergalas.orchestrator.entity.enums.FileType;
 import ru.sergalas.orchestrator.entity.enums.ProjectStatus;
+import ru.sergalas.orchestrator.entity.enums.ProjectType;
 import ru.sergalas.orchestrator.entity.enums.StepName;
 import ru.sergalas.orchestrator.entity.enums.StepStatus;
 import ru.sergalas.orchestrator.repository.AgentStepRepository;
@@ -80,15 +81,23 @@ public class PipelineExecutor {
             }
 
             // Step 1b: Backend Analyst specification
-            if (!isBackendAnalystStepCompleted(project)) {
-                log.info("Pipeline Step 1b: BACKEND_ANALYST - detailing backend & API specification...");
-                backendAnalystService.analyzeBackend(projectId);
+            if (project.getType() != ProjectType.FRONTEND_ONLY) {
+                if (!isBackendAnalystStepCompleted(project)) {
+                    log.info("Pipeline Step 1b: BACKEND_ANALYST - detailing backend & API specification...");
+                    backendAnalystService.analyzeBackend(projectId);
+                }
+            } else {
+                log.info("Project {} is FRONTEND_ONLY. Skipping BACKEND_ANALYST step.", projectId);
             }
 
             // Step 1c: Frontend Analyst specification
-            if (!isFrontendAnalystStepCompleted(project)) {
-                log.info("Pipeline Step 1c: FRONTEND_ANALYST - detailing frontend & UI specification...");
-                frontendAnalystService.analyzeFrontend(projectId);
+            if (project.getType() != ProjectType.BACKEND_ONLY) {
+                if (!isFrontendAnalystStepCompleted(project)) {
+                    log.info("Pipeline Step 1c: FRONTEND_ANALYST - detailing frontend & UI specification...");
+                    frontendAnalystService.analyzeFrontend(projectId);
+                }
+            } else {
+                log.info("Project {} is BACKEND_ONLY. Skipping FRONTEND_ANALYST step.", projectId);
             }
 
             // If specifications are ready, pause for user review and approval before starting development!
@@ -105,13 +114,18 @@ public class PipelineExecutor {
     public void continueFromStep(Long projectId, String startStep) {
         String step = (startStep == null || startStep.isBlank()) ? "ARCHITECT" : startStep.trim().toUpperCase();
         log.info("Continuing pipeline execution for project ID: {} from step: {}", projectId, step);
+        Project project = projectService.getProjectById(projectId);
         switch (step) {
             case "ARCHITECT" -> runPipeline(projectId);
             case "BACKEND_ANALYST" -> {
                 try {
                     projectService.updateStatus(projectId, ProjectStatus.IN_PROGRESS);
-                    backendAnalystService.analyzeBackend(projectId);
-                    frontendAnalystService.analyzeFrontend(projectId);
+                    if (project.getType() != ProjectType.FRONTEND_ONLY) {
+                        backendAnalystService.analyzeBackend(projectId);
+                    }
+                    if (project.getType() != ProjectType.BACKEND_ONLY) {
+                        frontendAnalystService.analyzeFrontend(projectId);
+                    }
                     projectService.updateStatus(projectId, ProjectStatus.WAITING_FOR_INPUT);
                 } catch (Exception e) {
                     log.error("Pipeline failed during BACKEND_ANALYST step for project ID: {}", projectId, e);
@@ -121,7 +135,9 @@ public class PipelineExecutor {
             case "FRONTEND_ANALYST" -> {
                 try {
                     projectService.updateStatus(projectId, ProjectStatus.IN_PROGRESS);
-                    frontendAnalystService.analyzeFrontend(projectId);
+                    if (project.getType() != ProjectType.BACKEND_ONLY) {
+                        frontendAnalystService.analyzeFrontend(projectId);
+                    }
                     projectService.updateStatus(projectId, ProjectStatus.WAITING_FOR_INPUT);
                 } catch (Exception e) {
                     log.error("Pipeline failed during FRONTEND_ANALYST step for project ID: {}", projectId, e);
@@ -142,29 +158,37 @@ public class PipelineExecutor {
 
         try {
             // Ensure specs are in place before writing code
-            if (!isBackendAnalystStepCompleted(project)) {
+            if (project.getType() != ProjectType.FRONTEND_ONLY && !isBackendAnalystStepCompleted(project)) {
                 log.info("Generating BACKEND_SPEC.md before development...");
                 backendAnalystService.analyzeBackend(projectId);
             }
-            if (!isFrontendAnalystStepCompleted(project)) {
+            if (project.getType() != ProjectType.BACKEND_ONLY && !isFrontendAnalystStepCompleted(project)) {
                 log.info("Generating FRONTEND_SPEC.md before development...");
                 frontendAnalystService.analyzeFrontend(projectId);
             }
 
             // Step 2a: Backend Worker generation
-            if (isBackendStepCompleted(project)) {
-                log.info("Pipeline Step 2a: BACKEND_DEVELOPER already completed for project {}. Reusing backend code.", projectId);
+            if (project.getType() != ProjectType.FRONTEND_ONLY) {
+                if (isBackendStepCompleted(project)) {
+                    log.info("Pipeline Step 2a: BACKEND_DEVELOPER already completed for project {}. Reusing backend code.", projectId);
+                } else {
+                    log.info("Pipeline Step 2a: BACKEND_DEVELOPER - generating backend source code...");
+                    backendWorkerService.generateBackendCode(projectId);
+                }
             } else {
-                log.info("Pipeline Step 2a: BACKEND_DEVELOPER - generating backend source code...");
-                backendWorkerService.generateBackendCode(projectId);
+                log.info("Project {} is FRONTEND_ONLY. Skipping BACKEND_DEVELOPER step.", projectId);
             }
 
             // Step 2b: Frontend Worker generation
-            if (isFrontendStepCompleted(project)) {
-                log.info("Pipeline Step 2b: FRONTEND_DEVELOPER already completed for project {}. Reusing frontend code.", projectId);
+            if (project.getType() != ProjectType.BACKEND_ONLY) {
+                if (isFrontendStepCompleted(project)) {
+                    log.info("Pipeline Step 2b: FRONTEND_DEVELOPER already completed for project {}. Reusing frontend code.", projectId);
+                } else {
+                    log.info("Pipeline Step 2b: FRONTEND_DEVELOPER - generating frontend source code...");
+                    frontendWorkerService.generateFrontendCode(projectId);
+                }
             } else {
-                log.info("Pipeline Step 2b: FRONTEND_DEVELOPER - generating frontend source code...");
-                frontendWorkerService.generateFrontendCode(projectId);
+                log.info("Project {} is BACKEND_ONLY. Skipping FRONTEND_DEVELOPER step.", projectId);
             }
 
             // Step 3: Tester generation
@@ -290,6 +314,12 @@ public class PipelineExecutor {
     }
 
     public boolean isWorkerStepCompleted(Project project) {
+        if (project.getType() == ProjectType.BACKEND_ONLY) {
+            return isBackendStepCompleted(project);
+        }
+        if (project.getType() == ProjectType.FRONTEND_ONLY) {
+            return isFrontendStepCompleted(project);
+        }
         return isBackendStepCompleted(project) && isFrontendStepCompleted(project);
     }
 

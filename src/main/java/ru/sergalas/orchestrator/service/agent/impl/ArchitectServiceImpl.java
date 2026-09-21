@@ -14,6 +14,7 @@ import ru.sergalas.orchestrator.entity.Project;
 import ru.sergalas.orchestrator.entity.ProjectContext;
 import ru.sergalas.orchestrator.entity.enums.FileType;
 import ru.sergalas.orchestrator.entity.enums.ProjectStatus;
+import ru.sergalas.orchestrator.entity.enums.ProjectType;
 import ru.sergalas.orchestrator.entity.enums.StepName;
 import ru.sergalas.orchestrator.entity.enums.StepStatus;
 import ru.sergalas.orchestrator.exception.AgentException;
@@ -65,6 +66,13 @@ public class ArchitectServiceImpl extends BaseAgentService implements ArchitectS
         long questionRounds = questionRepository.countByProject(project);
         boolean finalRound = questionRounds >= MAX_QUESTION_ROUNDS;
 
+        ProjectType projectType = project.getType() != null ? project.getType() : ProjectType.FULLSTACK;
+        String projectTypeHint = switch (projectType) {
+            case BACKEND_ONLY -> "ТИП ПРОЕКТА: ТОЛЬКО БЭКЕНД (REST API / БД). Не проектируй клиентский интерфейс, экраны и фронтенд. Сосредоточься на архитектуре бэкенда, API, сущностях и персистентности.";
+            case FRONTEND_ONLY -> "ТИП ПРОЕКТА: ТОЛЬКО ФРОНТЕНД (UI / Mobile). Не проектируй серверную БД и бэкенд. Сосредоточься на структуре экранов, UI-компонентах, управлении состоянием и контрактах внешних API.";
+            case FULLSTACK -> "ТИП ПРОЕКТА: FULLSTACK (Бэкенд + Фронтенд). Спроектируй как серверную архитектуру (API, сущности, сервисы), так и клиентскую архитектуру (экраны, компоненты).";
+        };
+
         Optional<AgentPrompt> promptOpt = agentPromptService != null 
                 ? agentPromptService.getEffectivePrompt(project, StepName.ARCHITECT, finalRound) 
                 : Optional.empty();
@@ -75,11 +83,14 @@ public class ArchitectServiceImpl extends BaseAgentService implements ArchitectS
                     "mcpRules", mcpRules,
                     "taskContent", taskContent,
                     "questionRounds", String.valueOf(questionRounds + (finalRound ? 0 : 1)),
-                    "maxRounds", String.valueOf(MAX_QUESTION_ROUNDS)
+                    "maxRounds", String.valueOf(MAX_QUESTION_ROUNDS),
+                    "projectType", projectType.name(),
+                    "projectTypeHint", projectTypeHint
             );
             prompt = agentPromptService.interpolate(promptOpt.get().getPrompt(), vars);
         } else if (finalRound) {
             prompt = "Ты — Principal Software Architect. Проанализируй следующее ТЗ и правила разработки:\n" +
+                    "Направление проекта:\n" + projectTypeHint + "\n\n" +
                     "Правила/Контекст:\n" + mcpRules + "\n" +
                     "ТЗ проекта:\n" + taskContent + "\n\n" +
                     "ИНСТРУКЦИЯ:\n" +
@@ -88,6 +99,7 @@ public class ArchitectServiceImpl extends BaseAgentService implements ArchitectS
                     "структуру пакетов, перечень сущностей, сервисов, DTO и REST контроллеров, начав свой ответ строго со слова SPECIFICATION:";
         } else {
             prompt = "Ты — Principal Software Architect. Проанализируй следующее ТЗ и правила разработки (Раунд вопросов " + (questionRounds + 1) + " из " + MAX_QUESTION_ROUNDS + "):\n" +
+                    "Направление проекта:\n" + projectTypeHint + "\n\n" +
                     "Правила/Контекст:\n" + mcpRules + "\n" +
                     "ТЗ проекта:\n" + taskContent + "\n\n" +
                     "ИНСТРУКЦИЯ:\n" +

@@ -2,13 +2,9 @@ package ru.sergalas.orchestrator.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 import ru.sergalas.orchestrator.entity.enums.McpTarget;
-import ru.sergalas.orchestrator.entity.enums.TransportType;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 
 @Entity
 @Table(name = "project_mcp_servers")
@@ -27,34 +23,40 @@ public class ProjectMcpServer {
     @JoinColumn(name = "project_id", nullable = false)
     private Project project;
     
-    @Column(nullable = false)
-    private String name;
-    
-    @Column(name = "server_url", nullable = false, length = 1000)
-    private String serverUrl;
-    
-    @Enumerated(EnumType.STRING)
-    @Column(name = "transport_type", nullable = false)
-    @Builder.Default
-    private TransportType transportType = TransportType.SSE;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "target", nullable = false)
-    @Builder.Default
-    private McpTarget target = McpTarget.COMMON;
-
-    @Column(name = "token", length = 1000)
-    private String token;
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "mcp_server_id", nullable = false)
+    private McpServer mcpServer;
     
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;
     
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
-    private Map<String, Object> config;
-    
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    // Convenience delegating getters to keep seamless compatibility
+    public String getName() {
+        return mcpServer != null ? mcpServer.getName() : null;
+    }
+
+    public String getServerUrl() {
+        return mcpServer != null ? mcpServer.getUrl() : null;
+    }
+
+    public String getUrl() {
+        return mcpServer != null ? mcpServer.getUrl() : null;
+    }
+
+    public McpTarget getTarget() {
+        return mcpServer != null ? mcpServer.getTarget() : null;
+    }
+
+    public String getToken() {
+        return mcpServer != null ? mcpServer.getToken() : null;
+    }
+
+    public String getDescription() {
+        return mcpServer != null ? mcpServer.getDescription() : null;
+    }
 }

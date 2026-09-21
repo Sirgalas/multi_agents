@@ -12,6 +12,7 @@ import ru.sergalas.orchestrator.entity.*;
 import ru.sergalas.orchestrator.entity.enums.FileType;
 import ru.sergalas.orchestrator.entity.enums.McpTarget;
 import ru.sergalas.orchestrator.entity.enums.ProjectStatus;
+import ru.sergalas.orchestrator.entity.enums.ProjectType;
 import ru.sergalas.orchestrator.entity.enums.StepName;
 import ru.sergalas.orchestrator.entity.enums.TransportType;
 import ru.sergalas.orchestrator.exception.ProjectNotFoundException;
@@ -53,6 +54,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .description(request.getDescription())
                 .taskTemplate(template)
                 .status(ProjectStatus.DRAFT)
+                .type(request.getType() != null ? request.getType() : ProjectType.FULLSTACK)
                 .build();
 
         Project savedProject = projectRepository.save(project);
@@ -93,14 +95,10 @@ public class ProjectServiceImpl implements ProjectService {
                 var dbServerOpt = mcpServerRepository != null ? mcpServerRepository.findByNameIgnoreCase(serverName) : java.util.Optional.<McpServer>empty();
                 if (dbServerOpt.isPresent()) {
                     var srv = dbServerOpt.get();
-                    if (!projectMcpServerRepository.existsByProjectAndName(savedProject, srv.getName())) {
+                    if (!projectMcpServerRepository.existsByProjectAndMcpServer(savedProject, srv)) {
                         ProjectMcpServer mcp = ProjectMcpServer.builder()
                                 .project(savedProject)
-                                .name(srv.getName())
-                                .serverUrl(srv.getUrl())
-                                .transportType(TransportType.SSE)
-                                .target(srv.getTarget() != null ? srv.getTarget() : McpTarget.COMMON)
-                                .token(srv.getToken())
+                                .mcpServer(srv)
                                 .isActive(true)
                                 .build();
                         projectMcpServerRepository.save(mcp);
@@ -110,13 +108,17 @@ public class ProjectServiceImpl implements ProjectService {
                             .filter(s -> s.getName().equalsIgnoreCase(serverName))
                             .findFirst()
                             .ifPresent(cfg -> {
-                                if (!projectMcpServerRepository.existsByProjectAndName(savedProject, cfg.getName())) {
+                                McpServer srv = mcpServerRepository.findByNameIgnoreCase(cfg.getName())
+                                        .orElseGet(() -> mcpServerRepository.save(McpServer.builder()
+                                                .name(cfg.getName())
+                                                .url(cfg.getUrl())
+                                                .target(cfg.getTarget() != null ? cfg.getTarget() : McpTarget.COMMON)
+                                                .description(cfg.getDescription())
+                                                .build()));
+                                if (!projectMcpServerRepository.existsByProjectAndMcpServer(savedProject, srv)) {
                                     ProjectMcpServer mcp = ProjectMcpServer.builder()
                                              .project(savedProject)
-                                             .name(cfg.getName())
-                                             .serverUrl(cfg.getUrl())
-                                             .transportType(cfg.getTransport())
-                                             .target(cfg.getTarget() != null ? cfg.getTarget() : McpTarget.COMMON)
+                                             .mcpServer(srv)
                                              .isActive(true)
                                              .build();
                                     projectMcpServerRepository.save(mcp);
@@ -130,14 +132,10 @@ public class ProjectServiceImpl implements ProjectService {
         if (request.getMcpServerIds() != null && mcpServerRepository != null) {
             for (Long srvId : request.getMcpServerIds()) {
                 mcpServerRepository.findById(srvId).ifPresent(srv -> {
-                    if (!projectMcpServerRepository.existsByProjectAndName(savedProject, srv.getName())) {
+                    if (!projectMcpServerRepository.existsByProjectAndMcpServer(savedProject, srv)) {
                         ProjectMcpServer mcp = ProjectMcpServer.builder()
                                 .project(savedProject)
-                                .name(srv.getName())
-                                .serverUrl(srv.getUrl())
-                                .transportType(TransportType.SSE)
-                                .target(srv.getTarget() != null ? srv.getTarget() : McpTarget.COMMON)
-                                .token(srv.getToken())
+                                .mcpServer(srv)
                                 .isActive(true)
                                 .build();
                         projectMcpServerRepository.save(mcp);
@@ -177,14 +175,10 @@ public class ProjectServiceImpl implements ProjectService {
 
                     if (selectedPrompt.getMcpServers() != null && projectMcpServerRepository != null) {
                         for (McpServer srv : selectedPrompt.getMcpServers()) {
-                            if (!projectMcpServerRepository.existsByProjectAndName(savedProject, srv.getName())) {
+                            if (!projectMcpServerRepository.existsByProjectAndMcpServer(savedProject, srv)) {
                                 ProjectMcpServer mcp = ProjectMcpServer.builder()
                                         .project(savedProject)
-                                        .name(srv.getName())
-                                        .serverUrl(srv.getUrl())
-                                        .transportType(TransportType.SSE)
-                                        .target(srv.getTarget() != null ? srv.getTarget() : McpTarget.COMMON)
-                                        .token(srv.getToken())
+                                        .mcpServer(srv)
                                         .isActive(true)
                                         .build();
                                 projectMcpServerRepository.save(mcp);

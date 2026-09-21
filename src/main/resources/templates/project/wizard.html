@@ -33,6 +33,53 @@
               <label for="description">Краткое описание</label>
               <textarea th:field="*{description}" class="form-control" id="description" rows="2" placeholder="Микросервис обработки платежей..."></textarea>
             </div>
+
+            <!-- Выбор направления/типа проекта -->
+            <div class="form-group mt-3">
+              <label class="h6 font-weight-bold text-dark mb-2">
+                <i class="fas fa-sitemap text-primary mr-1"></i> Тип проекта & Масштаб разработки <span class="text-danger">*</span>
+              </label>
+              <div class="row">
+                <!-- Fullstack -->
+                <div class="col-md-4 mb-2">
+                  <div class="card h-100 border p-3 type-card active shadow-sm" id="cardTypeFullstack" style="cursor: pointer; border-left: 4px solid #007bff !important;">
+                    <div class="custom-control custom-radio">
+                      <input type="radio" id="typeFullstack" th:field="*{type}" value="FULLSTACK" class="custom-control-input" checked>
+                      <label class="custom-control-label font-weight-bold text-dark" for="typeFullstack" style="cursor: pointer;">
+                        <i class="fas fa-layer-group text-primary mr-1"></i> Fullstack
+                      </label>
+                    </div>
+                    <small class="text-muted mt-2 d-block">Комплексный проект: Бэкенд (Java/Spring) + Фронтенд (React/Flutter). Задействованы все аналитики и разработчики.</small>
+                  </div>
+                </div>
+
+                <!-- Backend only -->
+                <div class="col-md-4 mb-2">
+                  <div class="card h-100 border p-3 type-card" id="cardTypeBackend" style="cursor: pointer;">
+                    <div class="custom-control custom-radio">
+                      <input type="radio" id="typeBackend" th:field="*{type}" value="BACKEND_ONLY" class="custom-control-input">
+                      <label class="custom-control-label font-weight-bold text-dark" for="typeBackend" style="cursor: pointer;">
+                        <i class="fas fa-server text-success mr-1"></i> Только Бэкенд
+                      </label>
+                    </div>
+                    <small class="text-muted mt-2 d-block">Серверная часть, REST API, сущности и БД. Фронтенд-аналитик и разработчик отключаются.</small>
+                  </div>
+                </div>
+
+                <!-- Frontend only -->
+                <div class="col-md-4 mb-2">
+                  <div class="card h-100 border p-3 type-card" id="cardTypeFrontend" style="cursor: pointer;">
+                    <div class="custom-control custom-radio">
+                      <input type="radio" id="typeFrontend" th:field="*{type}" value="FRONTEND_ONLY" class="custom-control-input">
+                      <label class="custom-control-label font-weight-bold text-dark" for="typeFrontend" style="cursor: pointer;">
+                        <i class="fas fa-laptop-code text-info mr-1"></i> Только Фронтенд
+                      </label>
+                    </div>
+                    <small class="text-muted mt-2 d-block">Клиентское SPA или мобильное приложение. Бэкенд-аналитик и разработчик отключаются.</small>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -72,7 +119,7 @@
             </p>
 
             <!-- Быстрый выбор клиентского стека (React vs Flutter) -->
-            <div class="callout callout-info mb-4">
+            <div class="callout callout-info mb-4" id="frontendPresetCard">
               <h5 class="font-weight-bold text-dark"><i class="fas fa-magic text-info mr-1"></i> Быстрый выбор фронтенд-стека:</h5>
               <p class="text-muted small mb-2">Выберите целевую платформу фронтенда — мы автоматически настроим роли Фронтенд-разработчика, Аналитика и соответствующие MCP серверы документации.</p>
               <div class="btn-group btn-group-toggle" data-toggle="buttons">
@@ -107,7 +154,7 @@
               </div>
 
               <!-- Аналитик Бэкенда -->
-              <div class="col-md-6 mb-3">
+              <div class="col-md-6 mb-3" id="backendAnalystCard">
                 <div class="border rounded p-3 bg-light h-100">
                   <label class="font-weight-bold text-dark">
                     <i class="fas fa-database text-info mr-1"></i> 2. Системный Аналитик Бэкенда (Backend Analyst)
@@ -125,7 +172,7 @@
               </div>
 
               <!-- Аналитик Фронтенда -->
-              <div class="col-md-6 mb-3">
+              <div class="col-md-6 mb-3" id="frontendAnalystCard">
                 <div class="border rounded p-3 bg-light h-100">
                   <label class="font-weight-bold text-dark">
                     <i class="fas fa-palette text-success mr-1"></i> 3. Системный Аналитик Фронтенда (Frontend Analyst)
@@ -143,7 +190,7 @@
               </div>
 
               <!-- Бэкенд-разработчик -->
-              <div class="col-md-6 mb-3">
+              <div class="col-md-6 mb-3" id="backendDevCard">
                 <div class="border rounded p-3 bg-light h-100">
                   <label class="font-weight-bold text-dark">
                     <i class="fas fa-cogs text-secondary mr-1"></i> 4. Бэкенд-разработчик (Backend Developer)
@@ -161,7 +208,7 @@
               </div>
 
               <!-- Фронтенд-разработчик -->
-              <div class="col-md-6 mb-3">
+              <div class="col-md-6 mb-3" id="frontendDevCard">
                 <div class="border rounded p-3 bg-light h-100 border-primary shadow-sm">
                   <label class="font-weight-bold text-primary">
                     <i class="fas fa-code text-primary mr-1"></i> 5. Фронтенд-разработчик (Frontend Developer) <span class="badge badge-primary ml-1">Выбор стека</span>
@@ -235,14 +282,14 @@
             <!-- MCP СЕРВЕРЫ РАЗДЕЛЕНИЕ -->
             <div class="form-group mt-3">
               <label class="h6 font-weight-bold text-dark mb-1">
-                <i class="fas fa-cubes text-primary mr-1"></i> Подключить MCP-серверы документации & стандартов разработки (Context7)
+                <i class="fas fa-cubes text-primary mr-1"></i> Подключить MCP-серверы документации & стандартов разработки (DevDocs / MCP Docs)
               </label>
               <p class="text-muted small mb-3">
                 Выбранные серверы автоматически передаются соответствующим агентам: Бэкенд-серверы идут <code>Backend Developer</code>, а Фронтенд-серверы — <code>Frontend Developer</code>.
               </p>
 
               <!-- Секция 1: БЭКЕНД MCP-СЕРВЕРЫ -->
-              <div class="card card-outline card-primary mb-3">
+              <div class="card card-outline card-primary mb-3" id="backendMcpCard">
                 <div class="card-header py-2 d-flex justify-content-between align-items-center">
                   <span class="font-weight-bold text-primary">
                     <i class="fas fa-server mr-1"></i> Бэкенд & Архитектура (Backend)
@@ -282,7 +329,7 @@
               </div>
 
               <!-- Секция 2: ФРОНТЕНД & MOBILE MCP-СЕРВЕРЫ -->
-              <div class="card card-outline card-success mb-3">
+              <div class="card card-outline card-success mb-3" id="frontendMcpCard">
                 <div class="card-header py-2 d-flex justify-content-between align-items-center">
                   <span class="font-weight-bold text-success">
                     <i class="fas fa-laptop-code mr-1"></i> Фронтенд, Мобильные платформы & UI (Frontend)
@@ -467,6 +514,49 @@
           }
         });
       });
+
+      // Обработка переключения типа проекта (Fullstack, Backend-only, Frontend-only)
+      function applyProjectType(type) {
+        $('.type-card').removeClass('active shadow-sm').css('border-left', '');
+        if (type === 'BACKEND_ONLY') {
+          $('#cardTypeBackend').addClass('active shadow-sm').css('border-left', '4px solid #28a745');
+          $('#frontendPresetCard, #frontendAnalystCard, #frontendDevCard, #frontendMcpCard').slideUp(200);
+          $('#backendAnalystCard, #backendDevCard, #backendMcpCard').slideDown(200);
+          $('.mcp-frontend-checkbox').prop('checked', false);
+          $('.mcp-backend-checkbox').prop('checked', true);
+        } else if (type === 'FRONTEND_ONLY') {
+          $('#cardTypeFrontend').addClass('active shadow-sm').css('border-left', '4px solid #17a2b8');
+          $('#backendAnalystCard, #backendDevCard, #backendMcpCard').slideUp(200);
+          $('#frontendPresetCard, #frontendAnalystCard, #frontendDevCard, #frontendMcpCard').slideDown(200);
+          $('.mcp-backend-checkbox').prop('checked', false);
+          $('.mcp-frontend-checkbox').prop('checked', true);
+        } else {
+          $('#cardTypeFullstack').addClass('active shadow-sm').css('border-left', '4px solid #007bff');
+          $('#frontendPresetCard, #frontendAnalystCard, #frontendDevCard, #frontendMcpCard').slideDown(200);
+          $('#backendAnalystCard, #backendDevCard, #backendMcpCard').slideDown(200);
+          $('.mcp-backend-checkbox').prop('checked', true);
+        }
+      }
+
+      $('input[name="type"]').on('change', function() {
+        applyProjectType($(this).val());
+      });
+
+      $('#cardTypeFullstack').on('click', function() {
+        $('#typeFullstack').prop('checked', true).trigger('change');
+      });
+
+      $('#cardTypeBackend').on('click', function() {
+        $('#typeBackend').prop('checked', true).trigger('change');
+      });
+
+      $('#cardTypeFrontend').on('click', function() {
+        $('#typeFrontend').prop('checked', true).trigger('change');
+      });
+
+      // Инициализировать состояние при загрузке страницы
+      var initialType = $('input[name="type"]:checked').val() || 'FULLSTACK';
+      applyProjectType(initialType);
     });
   </script>
 </div>

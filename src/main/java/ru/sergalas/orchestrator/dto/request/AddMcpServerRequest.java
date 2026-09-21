@@ -13,11 +13,11 @@ public class AddMcpServerRequest {
     
     @NotNull(message = "ID проекта обязателен")
     private Long projectId;
+
+    private Long serverId;
     
-    @NotBlank(message = "Название сервера обязательно")
     private String name;
     
-    @NotBlank(message = "URL сервера обязателен")
     private String serverUrl;
     
     private TransportType transportType = TransportType.SSE;
@@ -25,6 +25,8 @@ public class AddMcpServerRequest {
     private McpTarget target = McpTarget.COMMON;
 
     private String token;
+
+    private String description;
 
     private Boolean isActive = true;
     

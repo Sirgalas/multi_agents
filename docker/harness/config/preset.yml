@@ -1,0 +1,13 @@
+presets:
+  - name: "Spring-AI-Standard"
+    model: "ag/gemini-3.7-flash-high"
+    temperature: 0.7
+    base_url: "${ANYMODEL_BASE_URL}"
+    api_key: "${ANYMODEL_API_KEY}"
+    mcp_enabled: true
+  - name: "Clean-Architecture-Architect"
+    model: "cc/claude-sonnet-4-6"
+    temperature: 0.2
+    base_url: "${ANYMODEL_BASE_URL}"
+    api_key: "${ANYMODEL_API_KEY}"
+    mcp_enabled: true

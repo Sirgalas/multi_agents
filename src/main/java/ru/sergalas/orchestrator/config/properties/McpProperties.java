@@ -22,5 +22,6 @@ public class McpProperties {
         private TransportType transport = TransportType.SSE;
         private boolean defaultSelected = false;
         private McpTarget target = McpTarget.COMMON;
+        private String description;
     }
 }

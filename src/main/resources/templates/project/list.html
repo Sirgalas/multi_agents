@@ -27,6 +27,7 @@
             <tr>
               <th>ID</th>
               <th>Название</th>
+              <th>Тип</th>
               <th>Описание</th>
               <th>Статус</th>
               <th>Создан</th>
@@ -37,6 +38,12 @@
             <tr th:each="project : ${projects}">
               <td th:text="${project.id}"></td>
               <td><strong th:text="${project.name}"></strong></td>
+              <td>
+                <span class="badge" 
+                      th:classappend="${project.type != null && project.type.name() == 'BACKEND_ONLY' ? 'badge-success' : (project.type != null && project.type.name() == 'FRONTEND_ONLY' ? 'badge-info' : 'badge-primary')}"
+                      th:text="${project.type != null ? (project.type.name() == 'BACKEND_ONLY' ? 'Бэкенд' : (project.type.name() == 'FRONTEND_ONLY' ? 'Фронтенд' : 'Fullstack')) : 'Fullstack'}">
+                </span>
+              </td>
               <td th:text="${project.description}"></td>
               <td>
                 <span class="badge" 

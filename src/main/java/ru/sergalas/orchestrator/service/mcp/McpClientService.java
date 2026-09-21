@@ -32,25 +32,35 @@ public class McpClientService {
     private final ProjectMcpServerRepository mcpServerRepository;
     private final RestClient restClient;
 
+    private static final String DEFAULT_GENERIC_FALLBACK_RULE =
+            "Follow Clean Architecture, idiomatic patterns, and proper error handling.";
+
     /**
-     * Curated concise best practice summaries for known technologies to guarantee
-     * high-quality context and protect against massive HTML dumps.
+     * Builds a map of architectural rules dynamically from the project's MCP servers,
+     * using the server's description configured in the database.
      */
-    private static final Map<String, String> CURATED_RULES = Map.ofEntries(
-            Map.entry("Spring Boot Guidelines", "Spring Boot 3.4+, Java 21 LTS records for DTOs, constructor injection, @Valid, RFC 7807 ProblemDetail, Spring Data JPA with explicit transactions."),
-            Map.entry("Hibernate ORM Best Practices", "Avoid N+1 queries using EntityGraph/JOIN FETCH, use database indexes on FKs, immutable projections, bidirectional helper methods, validate ddl-auto."),
-            Map.entry("Java Modern Conventions", "Idiomatic Java 21, sealed interfaces, record patterns, pattern matching for switch, virtual threads for I/O, immutable collections."),
-            Map.entry("PostgreSQL Best Practices", "Use UUID/bigserial PKs, JSONB for flexible attributes, TIMESTAMP WITH TIME ZONE, Flyway schema migrations, proper index coverage."),
-            Map.entry("React Guidelines & Hooks", "Functional components, TypeScript strict types, custom hooks for business logic, memoization for expensive renders, clean state management."),
-            Map.entry("Next.js Fullstack Architecture", "App Router architecture, React Server Components by default, Client Components with 'use client', Server Actions for mutations."),
-            Map.entry("React Native Mobile Standards", "Modular components, platform-specific adaptations (iOS/Android), offline-first caching, background services handling, smooth animations."),
-            Map.entry("Flutter Framework & UI Widgets", "State management (Bloc/Riverpod), const widgets for rebuild optimization, responsive layouts, repository pattern for API abstraction."),
-            Map.entry("Dart Language Conventions", "Strict null-safety, effective Dart naming, async/await with error handling, immutable data models."),
-            Map.entry("TypeScript Strict Typing & Config", "Strict mode enabled, no 'any' types, discriminated unions for state, explicit return types for API contracts."),
-            Map.entry("JavaScript (ES6+ / Modern JS)", "ES2024+ syntax, async/await, modular ES modules, immutability patterns, structured error handling."),
-            Map.entry("HTML5 & Web Components", "Semantic HTML5 elements (header, main, section, nav, article), accessible ARIA labels, standards-compliant layout."),
-            Map.entry("CSS3 & Modern Styling (Tailwind / Flexbox / Grid)", "Mobile-first responsive design, utility-first CSS via Tailwind, flexbox/grid for layouts, accessible contrast ratios.")
-    );
+    public Map<String, String> buildRulesMap(List<ProjectMcpServer> servers) {
+        Map<String, String> rulesMap = new java.util.HashMap<>();
+        if (servers != null) {
+            for (ProjectMcpServer server : servers) {
+                if (server.getName() != null) {
+                    String rule = (server.getDescription() != null && !server.getDescription().isBlank())
+                            ? server.getDescription().trim()
+                            : DEFAULT_GENERIC_FALLBACK_RULE;
+                    rulesMap.put(server.getName(), rule);
+                }
+            }
+        }
+        return rulesMap;
+    }
+
+    /**
+     * Returns the merged rules map for all active servers of a project.
+     */
+    public Map<String, String> getRulesMap(Project project) {
+        List<ProjectMcpServer> activeServers = mcpServerRepository.findAllByProjectAndIsActiveTrue(project);
+        return buildRulesMap(activeServers);
+    }
 
     /**
      * Aggregates context and best practices from all active project MCP servers.
@@ -85,6 +95,8 @@ public class McpClientService {
             return "";
         }
 
+        Map<String, String> rulesMap = buildRulesMap(servers);
+
         StringBuilder contextBuilder = new StringBuilder();
         contextBuilder.append("\n=== MCP ARCHITECTURAL RULES & CONVENTIONS ===\n");
 
@@ -97,14 +109,14 @@ public class McpClientService {
             try {
                 log.info("Fetching guidelines from MCP server: {} ({}, target={})", server.getName(), server.getServerUrl(), server.getTarget());
                 String docResponse = fetchServerDocumentation(server.getServerUrl(), server.getToken());
-                String cleanedResponse = sanitizeDocumentation(server.getName(), docResponse);
+                String cleanedResponse = sanitizeDocumentation(server.getName(), docResponse, rulesMap);
 
                 contextBuilder.append("\n--- Source: ").append(server.getName()).append(" ---\n");
                 contextBuilder.append(cleanedResponse).append("\n");
             } catch (Exception e) {
                 log.warn("Could not retrieve MCP context from {}: {}", server.getServerUrl(), e.getMessage());
                 contextBuilder.append("\n--- Source: ").append(server.getName()).append(" [Fallback Guidelines] ---\n");
-                String curated = CURATED_RULES.getOrDefault(server.getName(),
+                String curated = rulesMap.getOrDefault(server.getName(),
                         "Follow Clean Architecture, idiomatic patterns, and proper error handling.");
                 contextBuilder.append(curated).append("\n");
             }
@@ -121,9 +133,9 @@ public class McpClientService {
         return requestSpec.retrieve().body(String.class);
     }
 
-    private String sanitizeDocumentation(String serverName, String rawContent) {
+    private String sanitizeDocumentation(String serverName, String rawContent, Map<String, String> rulesMap) {
         if (rawContent == null || rawContent.isBlank()) {
-            return CURATED_RULES.getOrDefault(serverName, "Standard architectural guidelines.");
+            return rulesMap.getOrDefault(serverName, DEFAULT_GENERIC_FALLBACK_RULE);
         }
 
         String cleaned = rawContent;
@@ -134,10 +146,11 @@ public class McpClientService {
             cleaned = MULTI_NEWLINE_PATTERN.matcher(cleaned).replaceAll("\n\n").trim();
 
             if (cleaned.length() < 100 || cleaned.contains("webpack") || cleaned.contains("_next")) {
-                String curated = CURATED_RULES.get(serverName);
+                String curated = rulesMap.get(serverName);
                 if (curated != null) {
                     return curated;
                 }
+                return DEFAULT_GENERIC_FALLBACK_RULE;
             }
         }
 
@@ -146,5 +159,9 @@ public class McpClientService {
         }
 
         return cleaned;
+    }
+
+    private String sanitizeDocumentation(String serverName, String rawContent) {
+        return sanitizeDocumentation(serverName, rawContent, Map.of());
     }
 }

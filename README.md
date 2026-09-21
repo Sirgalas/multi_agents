@@ -1,6 +1,6 @@
 # Spring AI Multi-Agent Orchestrator
 
-Production-ready веб-сервис на **Java 21 LTS** и **Spring Boot 3.4** для автоматизированной мультиагентной оркестрации генерации микросервисных приложений через единый API AnyModel и изоляционную среду DeepSeek Harness.
+Production-ready веб-сервис на **Java 21 LTS** и **Spring Boot 3.4** полностью сделан ИИ агентами. для автоматизированной мультиагентной оркестрации генерации микросервисных приложений через единый API AnyModel и изоляционную среду DeepSeek Harness.
 
 ---
 

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import ru.sergalas.orchestrator.entity.enums.ProjectStatus;
+import ru.sergalas.orchestrator.entity.enums.ProjectType;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -41,12 +42,21 @@ public class Project {
     @Builder.Default
     private ProjectStatus status = ProjectStatus.DRAFT;
     
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    @Builder.Default
+    private ProjectType type = ProjectType.FULLSTACK;
+    
     @Column(name = "archive_path", length = 500)
     private String archivePath;
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ProjectAgentPrompt> agentPrompts = new ArrayList<>();
+
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ProjectMcpServer> mcpServers = new ArrayList<>();
     
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default

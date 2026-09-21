@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.sergalas.orchestrator.entity.AgentStep;
 import ru.sergalas.orchestrator.entity.Project;
 import ru.sergalas.orchestrator.entity.enums.FileType;
+import ru.sergalas.orchestrator.entity.enums.ProjectType;
 import ru.sergalas.orchestrator.entity.enums.StepName;
 import ru.sergalas.orchestrator.entity.enums.StepStatus;
 import ru.sergalas.orchestrator.repository.AgentStepRepository;
@@ -40,6 +41,8 @@ public class HelperServiceImpl extends BaseAgentService implements HelperService
     public void generateInfrastructure(Long projectId) {
         Project project = projectService.getProjectById(projectId);
 
+        ProjectType projectType = project.getType() != null ? project.getType() : ProjectType.FULLSTACK;
+
         Optional<AgentPrompt> promptOpt = agentPromptService != null
                 ? agentPromptService.getEffectivePrompt(project, StepName.HELPER, false)
                 : Optional.empty();
@@ -47,16 +50,31 @@ public class HelperServiceImpl extends BaseAgentService implements HelperService
         String prompt;
         if (promptOpt.isPresent()) {
             Map<String, String> vars = Map.of(
-                    "projectName", project.getName()
+                    "projectName", project.getName(),
+                    "projectType", projectType.name()
             );
             prompt = agentPromptService.interpolate(promptOpt.get().getPrompt(), vars);
         } else {
+            String filesGuidance;
+            if (projectType == ProjectType.BACKEND_ONLY) {
+                filesGuidance = "1. Корневой docker-compose.yml (сервисы: postgres, backend, pgadmin)\n" +
+                        "2. backend/Dockerfile (многоэтапная сборка Java 21 / Spring Boot 3.4)\n" +
+                        "3. Корневой .gitignore\n" +
+                        "4. Корневой README.md с подробным руководством по локальному запуску backend и БД.\n";
+            } else if (projectType == ProjectType.FRONTEND_ONLY) {
+                filesGuidance = "1. Корневой docker-compose.yml (сервис: frontend / nginx)\n" +
+                        "2. frontend/Dockerfile (многоэтапная сборка React/Next.js/Flutter)\n" +
+                        "3. Корневой .gitignore\n" +
+                        "4. Корневой README.md с подробным руководством по запуску и сборке frontend.\n";
+            } else {
+                filesGuidance = "1. Корневой docker-compose.yml (сервисы: postgres, backend, frontend, pgadmin)\n" +
+                        "2. backend/Dockerfile (многоэтапная сборка Java 21 / Spring Boot 3.4)\n" +
+                        "3. frontend/Dockerfile (или скрипты сборки/запуска frontend/mobile)\n" +
+                        "4. Корневой .gitignore\n" +
+                        "5. Корневой README.md с подробным руководством по локальному запуску и backend, и frontend.\n";
+            }
             prompt = "Ты — DevOps Engineer. Сгенерируй файлы окружения и документацию для проекта '" + project.getName() + "':\n" +
-                    "1. Корневой docker-compose.yml (сервисы: postgres, backend, frontend при необходимости, pgadmin)\n" +
-                    "2. backend/Dockerfile (многоэтапная сборка Java 21 / Spring Boot 3.4)\n" +
-                    "3. frontend/Dockerfile (или скрипты сборки/запуска frontend/mobile)\n" +
-                    "4. Корневой .gitignore\n" +
-                    "5. Корневой README.md с подробным руководством по локальному запуску и backend, и frontend.\n" +
+                    filesGuidance +
                     "Каждый файл оформляй строго в формате:\n[FILE: относительный_путь]\n```формат\nконтент\n```";
         }
 

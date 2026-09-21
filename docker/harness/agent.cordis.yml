@@ -1,0 +1,33 @@
+version: "1.0"
+preset:
+  name: "deepseek-harness-anymodel"
+  context: "${HARNESS_CONTEXT}"
+
+provider:
+  type: "openai-compatible"
+  baseUrl: "${ANYMODEL_BASE_URL}"
+  apiKey: "${ANYMODEL_API_KEY}"
+
+agents:
+  architect:
+    model: "cc/claude-sonnet-4-6"
+    temperature: 0.2
+    systemPrompt: "You are the Architect Agent responsible for technical specifications and project design."
+
+  worker:
+    model: "ag/gemini-3.7-flash-high"
+    temperature: 0.3
+    systemPrompt: "You are the Worker Agent implementing high quality code following specs."
+
+  tester:
+    model: "ag/gemini-3.7-flash-high"
+    temperature: 0.2
+    systemPrompt: "You are the Tester Agent writing comprehensive unit and integration tests."
+
+  helper:
+    model: "ag/gemini-3.6-flash-high"
+    temperature: 0.4
+    systemPrompt: "You are the Helper Agent providing setup configs and deployment manifests."
+
+output:
+  directory: "/output"

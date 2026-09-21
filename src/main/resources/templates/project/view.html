@@ -21,10 +21,10 @@
               <select name="fromStep" class="custom-select custom-select-sm" style="min-width: 170px;">
                 <option value="">По умолчанию (Архитектор)</option>
                 <option value="ARCHITECT">1. Архитектор (Анализ ТЗ)</option>
-                <option th:if="${hasSpec}" value="BACKEND_ANALYST">2. Аналитик Бэкенда (API & БД)</option>
-                <option th:if="${hasBackendSpec}" value="FRONTEND_ANALYST">3. Аналитик Фронтенда (UI & Экраны)</option>
-                <option th:if="${hasBackendSpec}" value="BACKEND_DEVELOPER">4. Бэкенд (Java / Spring Boot)</option>
-                <option th:if="${hasFrontendSpec or hasBackendCode}" value="FRONTEND_DEVELOPER">5. Фронтенд (React / TS)</option>
+                <option th:if="${hasSpec and (project.type == null or project.type.name() != 'FRONTEND_ONLY')}" value="BACKEND_ANALYST">2. Аналитик Бэкенда (API & БД)</option>
+                <option th:if="${(hasBackendSpec or hasSpec) and (project.type == null or project.type.name() != 'BACKEND_ONLY')}" value="FRONTEND_ANALYST">3. Аналитик Фронтенда (UI & Экраны)</option>
+                <option th:if="${(hasBackendSpec or hasSpec) and (project.type == null or project.type.name() != 'FRONTEND_ONLY')}" value="BACKEND_DEVELOPER">4. Бэкенд (Java / Spring Boot)</option>
+                <option th:if="${(hasFrontendSpec or hasBackendCode or hasSpec) and (project.type == null or project.type.name() != 'BACKEND_ONLY')}" value="FRONTEND_DEVELOPER">5. Фронтенд (React / TS)</option>
                 <option th:if="${hasWorkerCode}" value="TESTER">6. Тестировщик (Tester: тесты)</option>
                 <option th:if="${hasWorkerCode}" value="HELPER">7. DevOps (Helper: манифесты)</option>
                 <option th:if="${hasWorkerCode}" value="ARCHIVE">8. Архиватор (Сборка ZIP)</option>
@@ -70,6 +70,13 @@
                   </span>
                 </li>
                 <li class="list-group-item">
+                  <b>Тип проекта:</b> 
+                  <span class="float-right badge" 
+                        th:classappend="${project.type != null && project.type.name() == 'BACKEND_ONLY' ? 'badge-success' : (project.type != null && project.type.name() == 'FRONTEND_ONLY' ? 'badge-info' : 'badge-primary')}"
+                        th:text="${project.type != null ? (project.type.name() == 'BACKEND_ONLY' ? 'Только Бэкенд' : (project.type.name() == 'FRONTEND_ONLY' ? 'Только Фронтенд' : 'Fullstack')) : 'Fullstack'}">
+                  </span>
+                </li>
+                <li class="list-group-item">
                   <b>Создатель:</b> <span class="float-right" th:text="${project.user.username}"></span>
                 </li>
                 <li class="list-group-item">
@@ -93,7 +100,10 @@
               </p>
               <form th:action="@{'/projects/' + ${project.id} + '/approve-spec'}" method="post">
                 <button type="submit" class="btn btn-success btn-block font-weight-bold">
-                  <i class="fas fa-play mr-1"></i> Утвердить спецификации и начать разработку (Backend & Frontend)
+                  <i class="fas fa-play mr-1"></i> 
+                  <span th:text="${project.type != null ? (project.type.name() == 'BACKEND_ONLY' ? 'Утвердить спецификацию и начать разработку (Backend)' : (project.type.name() == 'FRONTEND_ONLY' ? 'Утвердить спецификацию и начать разработку (Frontend)' : 'Утвердить спецификации и начать разработку (Backend & Frontend)')) : 'Утвердить спецификации и начать разработку'}">
+                    Утвердить спецификации и начать разработку
+                  </span>
                 </button>
               </form>
             </div>

@@ -1,0 +1,15 @@
+anymodel:
+  api_key: "${ANYMODEL_API_KEY}"
+  base_url: "${ANYMODEL_BASE_URL}"
+
+harness:
+  enabled: true
+  max_iterations: 10
+  timeout_seconds: 300
+  output_dir: "/output"
+
+agents:
+  orchestration:
+    mode: "multi-agent"
+    strict_file_format: true
+    pattern: "\\[FILE:\\s*([^\\]]+)\\]"

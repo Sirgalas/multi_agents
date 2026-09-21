@@ -84,64 +84,77 @@ mcp:
   default-servers:
     # Backend & Database
     - name: "Spring Boot Guidelines"
-      url: "https://context7.com/spring-projects/spring-boot"
+      url: "${MCP_DOCS_BASE_URL:http://localhost:8888}/spring_boot"
       transport: SSE
       default-selected: true
       target: BACKEND
+      description: "Spring Boot 3.4+, Java 21 LTS records for DTOs, constructor injection, @Valid, RFC 7807 ProblemDetail, Spring Data JPA with explicit transactions."
     - name: "Hibernate ORM Best Practices"
-      url: "https://context7.com/hibernate/hibernate-orm"
+      url: "${MCP_DOCS_BASE_URL:http://localhost:8888}/hibernate"
       transport: SSE
       default-selected: true
       target: BACKEND
+      description: "Avoid N+1 queries using EntityGraph/JOIN FETCH, use database indexes on FKs, immutable projections, bidirectional helper methods, validate ddl-auto."
     - name: "Java Modern Conventions"
-      url: "https://context7.com/java/openjdk"
+      url: "${MCP_DOCS_BASE_URL:http://localhost:8888}/openjdk~21"
       transport: SSE
       default-selected: true
       target: BACKEND
+      description: "Idiomatic Java 21, sealed interfaces, record patterns, pattern matching for switch, virtual threads for I/O, immutable collections."
     - name: "PostgreSQL Best Practices"
-      url: "https://context7.com/postgres/postgres"
+      url: "${MCP_DOCS_BASE_URL:http://localhost:8888}/postgresql~16"
       transport: SSE
       default-selected: true
       target: BACKEND
+      description: "Use UUID/bigserial PKs, JSONB for flexible attributes, TIMESTAMP WITH TIME ZONE, Flyway schema migrations, proper index coverage."
 
     # Frontend (React & Web)
     - name: "React Guidelines & Hooks"
-      url: "https://context7.com/facebook/react"
+      url: "${MCP_DOCS_BASE_URL:http://localhost:8888}/react"
       transport: SSE
       target: FRONTEND
+      description: "Functional components, TypeScript strict types, custom hooks for business logic, memoization for expensive renders, clean state management."
     - name: "Next.js Fullstack Architecture"
-      url: "https://context7.com/vercel/next.js"
+      url: "${MCP_DOCS_BASE_URL:http://localhost:8888}/nextjs"
       transport: SSE
       target: FRONTEND
+      description: "App Router architecture, React Server Components by default, Client Components with 'use client', Server Actions for mutations."
 
     # Mobile (React Native, Flutter & Dart)
     - name: "React Native Mobile Standards"
-      url: "https://context7.com/facebook/react-native"
+      url: "${MCP_DOCS_BASE_URL:http://localhost:8888}/react_native"
       transport: SSE
       target: FRONTEND
+      description: "Modular components, platform-specific adaptations (iOS/Android), offline-first caching, background services handling, smooth animations."
     - name: "Flutter Framework & UI Widgets"
-      url: "https://context7.com/flutter/flutter"
+      url: "${MCP_DOCS_BASE_URL:http://localhost:8888}/flutter"
       transport: SSE
       target: FRONTEND
+      description: "State management (Bloc/Riverpod), const widgets for rebuild optimization, responsive layouts, repository pattern for API abstraction."
     - name: "Dart Language Conventions"
-      url: "https://context7.com/dart-lang/sdk"
+      url: "${MCP_DOCS_BASE_URL:http://localhost:8888}/dart"
       transport: SSE
       target: FRONTEND
+      description: "Strict null-safety, effective Dart naming, async/await with error handling, immutable data models."
 
     # Web Standards, Languages & Styling
     - name: "TypeScript Strict Typing & Config"
-      url: "https://context7.com/microsoft/typescript"
+      url: "${MCP_DOCS_BASE_URL:http://localhost:8888}/typescript"
       transport: SSE
       target: FRONTEND
+      description: "Strict mode enabled, no 'any' types, discriminated unions for state, explicit return types for API contracts."
     - name: "JavaScript (ES6+ / Modern JS)"
-      url: "https://context7.com/tc39/ecma262"
+      url: "${MCP_DOCS_BASE_URL:http://localhost:8888}/javascript"
       transport: SSE
       target: FRONTEND
+      description: "ES2024+ syntax, async/await, modular ES modules, immutability patterns, structured error handling."
     - name: "HTML5 & Web Components"
-      url: "https://context7.com/whatwg/html"
+      url: "${MCP_DOCS_BASE_URL:http://localhost:8888}/html"
       transport: SSE
       target: FRONTEND
+      description: "Semantic HTML5 elements (header, main, section, nav, article), accessible ARIA labels, standards-compliant layout."
     - name: "CSS3 & Modern Styling (Tailwind / Flexbox / Grid)"
-      url: "https://context7.com/tailwindlabs/tailwindcss"
+      url: "${MCP_DOCS_BASE_URL:http://localhost:8888}/css"
       transport: SSE
       target: FRONTEND
+      description: "Mobile-first responsive design, utility-first CSS via Tailwind, flexbox/grid for layouts, accessible contrast ratios."
