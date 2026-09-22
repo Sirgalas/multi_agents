@@ -1,4 +1,4 @@
-package ru.sergalas.orchestrator.service.mcp;
+package ru.sergalas.orchestrator.service.mcp.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +8,7 @@ import ru.sergalas.orchestrator.dto.request.CreateMcpServerRequest;
 import ru.sergalas.orchestrator.entity.McpServer;
 import ru.sergalas.orchestrator.entity.enums.McpTarget;
 import ru.sergalas.orchestrator.repository.McpServerRepository;
+import ru.sergalas.orchestrator.service.mcp.McpServerService;
 
 import java.util.List;
 

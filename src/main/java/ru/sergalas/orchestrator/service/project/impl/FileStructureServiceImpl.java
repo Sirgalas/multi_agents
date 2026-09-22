@@ -1,4 +1,4 @@
-package ru.sergalas.orchestrator.service.project;
+package ru.sergalas.orchestrator.service.project.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.sergalas.orchestrator.entity.FileStructureTemplate;
 import ru.sergalas.orchestrator.exception.TemplateNotFoundException;
 import ru.sergalas.orchestrator.repository.FileStructureTemplateRepository;
+import ru.sergalas.orchestrator.service.project.FileStructureService;
 
 import java.util.List;
 

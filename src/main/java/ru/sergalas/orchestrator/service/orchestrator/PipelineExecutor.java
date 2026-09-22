@@ -10,16 +10,12 @@ import ru.sergalas.orchestrator.entity.Project;
 import ru.sergalas.orchestrator.entity.ProjectContext;
 import ru.sergalas.orchestrator.entity.enums.FileType;
 import ru.sergalas.orchestrator.entity.enums.ProjectStatus;
-import ru.sergalas.orchestrator.entity.enums.ProjectType;
 import ru.sergalas.orchestrator.entity.enums.StepName;
 import ru.sergalas.orchestrator.entity.enums.StepStatus;
 import ru.sergalas.orchestrator.repository.AgentStepRepository;
 import ru.sergalas.orchestrator.repository.ProjectRepository;
+import ru.sergalas.orchestrator.service.agent.AgentsService;
 import ru.sergalas.orchestrator.service.agent.ArchitectService;
-import ru.sergalas.orchestrator.service.agent.BackendAnalystService;
-import ru.sergalas.orchestrator.service.agent.FrontendAnalystService;
-import ru.sergalas.orchestrator.service.agent.BackendWorkerService;
-import ru.sergalas.orchestrator.service.agent.FrontendWorkerService;
 import ru.sergalas.orchestrator.service.agent.HelperService;
 import ru.sergalas.orchestrator.service.agent.TesterService;
 import ru.sergalas.orchestrator.service.project.ProjectContextService;
@@ -34,10 +30,7 @@ import java.util.Optional;
 public class PipelineExecutor {
 
     private final ArchitectService architectService;
-    private final BackendAnalystService backendAnalystService;
-    private final FrontendAnalystService frontendAnalystService;
-    private final BackendWorkerService backendWorkerService;
-    private final FrontendWorkerService frontendWorkerService;
+    private final List<AgentsService> agents;
     private final TesterService testerService;
     private final HelperService helperService;
     private final ProjectService projectService;
@@ -80,28 +73,16 @@ public class PipelineExecutor {
                 return;
             }
 
-            // Step 1b: Backend Analyst specification
-            if (project.getType() != ProjectType.FRONTEND_ONLY) {
-                if (!isBackendAnalystStepCompleted(project)) {
-                    log.info("Pipeline Step 1b: BACKEND_ANALYST - detailing backend & API specification...");
-                    backendAnalystService.analyzeBackend(projectId);
-                }
-            } else {
-                log.info("Project {} is FRONTEND_ONLY. Skipping BACKEND_ANALYST step.", projectId);
-            }
-
-            // Step 1c: Frontend Analyst specification
-            if (project.getType() != ProjectType.BACKEND_ONLY) {
-                if (!isFrontendAnalystStepCompleted(project)) {
-                    log.info("Pipeline Step 1c: FRONTEND_ANALYST - detailing frontend & UI specification...");
-                    frontendAnalystService.analyzeFrontend(projectId);
-                }
-            } else {
-                log.info("Project {} is BACKEND_ONLY. Skipping FRONTEND_ANALYST step.", projectId);
+            // Step 1b & 1c: Agent specifications (Backend, Frontend, etc.)
+            for (AgentsService agent : getAnalystAgents()) {
+                agent.isNeedAgents(project).ifPresentOrElse(
+                        a -> a.work(projectId),
+                        () -> log.info("Project {} does not need {}. Skipping.", projectId, agent.getStepName())
+                );
             }
 
             // If specifications are ready, pause for user review and approval before starting development!
-            log.info("Pipeline Step 1 complete (Architect + Backend Analyst + Frontend Analyst). Specifications ready for project {}. Pausing in WAITING_FOR_INPUT for user approval.", projectId);
+            log.info("Pipeline Step 1 complete (Architect + Analysts). Specifications ready for project {}. Pausing in WAITING_FOR_INPUT for user approval.", projectId);
             projectService.updateStatus(projectId, ProjectStatus.WAITING_FOR_INPUT);
 
         } catch (Exception e) {
@@ -115,36 +96,29 @@ public class PipelineExecutor {
         String step = (startStep == null || startStep.isBlank()) ? "ARCHITECT" : startStep.trim().toUpperCase();
         log.info("Continuing pipeline execution for project ID: {} from step: {}", projectId, step);
         Project project = projectService.getProjectById(projectId);
-        switch (step) {
-            case "ARCHITECT" -> runPipeline(projectId);
-            case "BACKEND_ANALYST" -> {
-                try {
-                    projectService.updateStatus(projectId, ProjectStatus.IN_PROGRESS);
-                    if (project.getType() != ProjectType.FRONTEND_ONLY) {
-                        backendAnalystService.analyzeBackend(projectId);
-                    }
-                    if (project.getType() != ProjectType.BACKEND_ONLY) {
-                        frontendAnalystService.analyzeFrontend(projectId);
-                    }
-                    projectService.updateStatus(projectId, ProjectStatus.WAITING_FOR_INPUT);
-                } catch (Exception e) {
-                    log.error("Pipeline failed during BACKEND_ANALYST step for project ID: {}", projectId, e);
-                    projectService.updateStatus(projectId, ProjectStatus.FAILED);
-                }
+
+        boolean isAnalystStep = getAnalystAgents().stream()
+                .anyMatch(a -> a.isNeedAgents(step).isPresent());
+
+        if ("ARCHITECT".equalsIgnoreCase(step)) {
+            runPipeline(projectId);
+        } else if (isAnalystStep) {
+            runAnalystStep(projectId, project, step);
+        } else {
+            continueDevelopment(projectId);
+        }
+    }
+
+    private void runAnalystStep(Long projectId, Project project, String step) {
+        try {
+            projectService.updateStatus(projectId, ProjectStatus.IN_PROGRESS);
+            for (AgentsService agent : getAnalystAgents()) {
+                agent.isNeedAgents(project, step).ifPresent(a -> a.work(projectId));
             }
-            case "FRONTEND_ANALYST" -> {
-                try {
-                    projectService.updateStatus(projectId, ProjectStatus.IN_PROGRESS);
-                    if (project.getType() != ProjectType.BACKEND_ONLY) {
-                        frontendAnalystService.analyzeFrontend(projectId);
-                    }
-                    projectService.updateStatus(projectId, ProjectStatus.WAITING_FOR_INPUT);
-                } catch (Exception e) {
-                    log.error("Pipeline failed during FRONTEND_ANALYST step for project ID: {}", projectId, e);
-                    projectService.updateStatus(projectId, ProjectStatus.FAILED);
-                }
-            }
-            default -> continueDevelopment(projectId);
+            projectService.updateStatus(projectId, ProjectStatus.WAITING_FOR_INPUT);
+        } catch (Exception e) {
+            log.error("Pipeline failed during {} step for project ID: {}", step, projectId, e);
+            projectService.updateStatus(projectId, ProjectStatus.FAILED);
         }
     }
 
@@ -158,37 +132,16 @@ public class PipelineExecutor {
 
         try {
             // Ensure specs are in place before writing code
-            if (project.getType() != ProjectType.FRONTEND_ONLY && !isBackendAnalystStepCompleted(project)) {
-                log.info("Generating BACKEND_SPEC.md before development...");
-                backendAnalystService.analyzeBackend(projectId);
-            }
-            if (project.getType() != ProjectType.BACKEND_ONLY && !isFrontendAnalystStepCompleted(project)) {
-                log.info("Generating FRONTEND_SPEC.md before development...");
-                frontendAnalystService.analyzeFrontend(projectId);
+            for (AgentsService agent : getAnalystAgents()) {
+                agent.isNeedAgents(project).ifPresent(a -> a.work(projectId));
             }
 
-            // Step 2a: Backend Worker generation
-            if (project.getType() != ProjectType.FRONTEND_ONLY) {
-                if (isBackendStepCompleted(project)) {
-                    log.info("Pipeline Step 2a: BACKEND_DEVELOPER already completed for project {}. Reusing backend code.", projectId);
-                } else {
-                    log.info("Pipeline Step 2a: BACKEND_DEVELOPER - generating backend source code...");
-                    backendWorkerService.generateBackendCode(projectId);
-                }
-            } else {
-                log.info("Project {} is FRONTEND_ONLY. Skipping BACKEND_DEVELOPER step.", projectId);
-            }
-
-            // Step 2b: Frontend Worker generation
-            if (project.getType() != ProjectType.BACKEND_ONLY) {
-                if (isFrontendStepCompleted(project)) {
-                    log.info("Pipeline Step 2b: FRONTEND_DEVELOPER already completed for project {}. Reusing frontend code.", projectId);
-                } else {
-                    log.info("Pipeline Step 2b: FRONTEND_DEVELOPER - generating frontend source code...");
-                    frontendWorkerService.generateFrontendCode(projectId);
-                }
-            } else {
-                log.info("Project {} is BACKEND_ONLY. Skipping FRONTEND_DEVELOPER step.", projectId);
+            // Step 2: Worker generation (Backend, Frontend)
+            for (AgentsService worker : getWorkerAgents()) {
+                worker.isNeedAgents(project).ifPresentOrElse(
+                        w -> w.work(projectId),
+                        () -> log.info("Project {} does not need {}. Skipping.", projectId, worker.getStepName())
+                );
             }
 
             // Step 3: Tester generation
@@ -251,76 +204,32 @@ public class PipelineExecutor {
         return true;
     }
 
-    public boolean isBackendAnalystStepCompleted(Project project) {
-        boolean hasContext = contextService.getContextByProject(project).stream()
-                .anyMatch(c -> "BACKEND_SPEC.md".equals(c.getFileName())
-                        && c.getFileContent() != null && !c.getFileContent().isBlank());
-
-        boolean hasStep = agentStepRepository
-                .findFirstByProjectAndStepNameOrderByCreatedAtDesc(project, StepName.BACKEND_ANALYST)
-                .map(step -> step.getStatus() == StepStatus.COMPLETED)
-                .orElse(false);
-
-        return hasContext && hasStep;
-    }
-
-    public boolean isFrontendAnalystStepCompleted(Project project) {
-        boolean hasContext = contextService.getContextByProject(project).stream()
-                .anyMatch(c -> "FRONTEND_SPEC.md".equals(c.getFileName())
-                        && c.getFileContent() != null && !c.getFileContent().isBlank());
-
-        boolean hasStep = agentStepRepository
-                .findFirstByProjectAndStepNameOrderByCreatedAtDesc(project, StepName.FRONTEND_ANALYST)
-                .map(step -> step.getStatus() == StepStatus.COMPLETED)
-                .orElse(false);
-
-        return hasContext && hasStep;
-    }
-
-    public boolean isBackendStepCompleted(Project project) {
-        boolean hasContext = contextService.getContextByProject(project).stream()
-                .anyMatch(c -> c.getFileType() == FileType.CONTEXT_CODE 
-                        && ("GENERATED_BACKEND_CODE.md".equals(c.getFileName()) || "GENERATED_CODE.md".equals(c.getFileName()))
-                        && c.getFileContent() != null && !c.getFileContent().isBlank());
-
-        boolean hasStep = agentStepRepository
-                .findFirstByProjectAndStepNameOrderByCreatedAtDesc(project, StepName.BACKEND_DEVELOPER)
-                .map(step -> step.getStatus() == StepStatus.COMPLETED)
-                .orElse(false)
-                || agentStepRepository
-                .findFirstByProjectAndStepNameOrderByCreatedAtDesc(project, StepName.WORKER)
-                .map(step -> step.getStatus() == StepStatus.COMPLETED)
-                .orElse(false);
-
-        return hasContext && hasStep;
-    }
-
-    public boolean isFrontendStepCompleted(Project project) {
-        boolean hasContext = contextService.getContextByProject(project).stream()
-                .anyMatch(c -> c.getFileType() == FileType.CONTEXT_CODE 
-                        && ("GENERATED_FRONTEND_CODE.md".equals(c.getFileName()) || "GENERATED_CODE.md".equals(c.getFileName()))
-                        && c.getFileContent() != null && !c.getFileContent().isBlank());
-
-        boolean hasStep = agentStepRepository
-                .findFirstByProjectAndStepNameOrderByCreatedAtDesc(project, StepName.FRONTEND_DEVELOPER)
-                .map(step -> step.getStatus() == StepStatus.COMPLETED)
-                .orElse(false)
-                || agentStepRepository
-                .findFirstByProjectAndStepNameOrderByCreatedAtDesc(project, StepName.WORKER)
-                .map(step -> step.getStatus() == StepStatus.COMPLETED)
-                .orElse(false);
-
-        return hasContext && hasStep;
-    }
 
     public boolean isWorkerStepCompleted(Project project) {
-        if (project.getType() == ProjectType.BACKEND_ONLY) {
-            return isBackendStepCompleted(project);
+        if (project == null) {
+            return false;
         }
-        if (project.getType() == ProjectType.FRONTEND_ONLY) {
-            return isFrontendStepCompleted(project);
+        return getWorkerAgents().stream()
+                .filter(worker -> worker.isNeedAgents(project).isPresent())
+                .allMatch(worker -> worker.isCompleted(project));
+    }
+
+    private List<AgentsService> getAnalystAgents() {
+        if (agents == null) {
+            return List.of();
         }
-        return isBackendStepCompleted(project) && isFrontendStepCompleted(project);
+        return agents.stream()
+                .filter(a -> a.getStepName() == StepName.BACKEND_ANALYST || a.getStepName() == StepName.FRONTEND_ANALYST || a.isAnalyst())
+                .toList();
+    }
+
+    private List<AgentsService> getWorkerAgents() {
+        if (agents == null) {
+            return List.of();
+        }
+        return agents.stream()
+                .filter(a -> a.getStepName() == StepName.BACKEND_DEVELOPER || a.getStepName() == StepName.FRONTEND_DEVELOPER || a.getStepName() == StepName.WORKER || a.isWorker())
+                .toList();
     }
 
     public boolean isTesterStepCompleted(Project project) {

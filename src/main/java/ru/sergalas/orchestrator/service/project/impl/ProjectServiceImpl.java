@@ -1,4 +1,4 @@
-package ru.sergalas.orchestrator.service.project;
+package ru.sergalas.orchestrator.service.project.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -14,9 +14,10 @@ import ru.sergalas.orchestrator.entity.enums.McpTarget;
 import ru.sergalas.orchestrator.entity.enums.ProjectStatus;
 import ru.sergalas.orchestrator.entity.enums.ProjectType;
 import ru.sergalas.orchestrator.entity.enums.StepName;
-import ru.sergalas.orchestrator.entity.enums.TransportType;
 import ru.sergalas.orchestrator.exception.ProjectNotFoundException;
 import ru.sergalas.orchestrator.repository.*;
+import ru.sergalas.orchestrator.service.project.ProjectContextService;
+import ru.sergalas.orchestrator.service.project.ProjectService;
 
 import java.io.File;
 import java.util.List;

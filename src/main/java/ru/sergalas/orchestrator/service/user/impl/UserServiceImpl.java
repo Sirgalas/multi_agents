@@ -1,4 +1,4 @@
-package ru.sergalas.orchestrator.service.user;
+package ru.sergalas.orchestrator.service.user.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.sergalas.orchestrator.dto.request.CreateUserRequest;
 import ru.sergalas.orchestrator.entity.User;
 import ru.sergalas.orchestrator.repository.UserRepository;
+import ru.sergalas.orchestrator.service.user.UserService;
 
 import java.util.List;
 

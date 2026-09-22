@@ -13,7 +13,6 @@ import ru.sergalas.orchestrator.entity.enums.StepName;
 import ru.sergalas.orchestrator.entity.enums.StepStatus;
 import ru.sergalas.orchestrator.repository.AgentStepRepository;
 import ru.sergalas.orchestrator.service.agent.AgentClientFactory;
-import ru.sergalas.orchestrator.service.agent.BackendAnalystService;
 import ru.sergalas.orchestrator.service.agent.BaseAgentService;
 import ru.sergalas.orchestrator.service.mcp.McpClientService;
 import ru.sergalas.orchestrator.service.project.ProjectContextService;
@@ -22,14 +21,19 @@ import ru.sergalas.orchestrator.service.project.ProjectService;
 import ru.sergalas.orchestrator.entity.AgentPrompt;
 import ru.sergalas.orchestrator.service.prompt.AgentPromptService;
 
+import org.springframework.core.annotation.Order;
+import ru.sergalas.orchestrator.entity.enums.ProjectType;
+import ru.sergalas.orchestrator.service.agent.AgentsService;
+
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
 @Service
+@Order(1)
 @RequiredArgsConstructor
-public class BackendAnalystServiceImpl extends BaseAgentService implements BackendAnalystService {
+public class BackendAnalystService extends BaseAgentService implements AgentsService {
 
     private final AgentClientFactory clientFactory;
     private final ProjectService projectService;
@@ -39,9 +43,45 @@ public class BackendAnalystServiceImpl extends BaseAgentService implements Backe
     private final AgentPromptService agentPromptService;
 
     @Override
+    public StepName getStepName() {
+        return StepName.BACKEND_ANALYST;
+    }
+
+    @Override
+    public Optional<AgentsService> isNeedAgents(Project project) {
+        if (project != null && project.getType() != ProjectType.FRONTEND_ONLY) {
+            return Optional.of(this);
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public boolean isCompleted(Project project) {
+        if (project == null) {
+            return false;
+        }
+        boolean hasContext = contextService.getContextByProject(project).stream()
+                .anyMatch(c -> "BACKEND_SPEC.md".equals(c.getFileName())
+                        && c.getFileContent() != null && !c.getFileContent().isBlank());
+
+        boolean hasStep = agentStepRepository
+                .findFirstByProjectAndStepNameOrderByCreatedAtDesc(project, StepName.BACKEND_ANALYST)
+                .map(step -> step.getStatus() == StepStatus.COMPLETED)
+                .orElse(false);
+
+        return hasContext && hasStep;
+    }
+
+
+    @Override
     @Transactional
-    public void analyzeBackend(Long projectId) {
+    public void work(Long projectId) {
         Project project = projectService.getProjectById(projectId);
+        if (isCompleted(project)) {
+            log.info("Pipeline Step: {} already completed for project {}. Reusing specification.", getStepName(), projectId);
+            return;
+        }
+        log.info("Pipeline Step: {} - detailing specification...", getStepName());
         String task = contextService.getLatestContextByType(project, FileType.TASK)
                 .map(ProjectContext::getFileContent).orElse("");
 

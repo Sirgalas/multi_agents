@@ -1,4 +1,4 @@
-package ru.sergalas.orchestrator.service.project;
+package ru.sergalas.orchestrator.service.project.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -7,6 +7,7 @@ import ru.sergalas.orchestrator.entity.Project;
 import ru.sergalas.orchestrator.entity.ProjectContext;
 import ru.sergalas.orchestrator.entity.enums.FileType;
 import ru.sergalas.orchestrator.repository.ProjectContextRepository;
+import ru.sergalas.orchestrator.service.project.ProjectContextService;
 
 import java.util.List;
 import java.util.Optional;
