@@ -305,7 +305,7 @@ public class ProjectServiceImpl implements ProjectService {
             case "ARCHITECT" -> {
                 agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
                         List.of(StepName.ARCHITECT, StepName.BACKEND_ANALYST, StepName.FRONTEND_ANALYST, 
-                                StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.WORKER, StepName.TESTER, StepName.HELPER));
+                                StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.TESTER, StepName.HELPER));
                 architectQuestionRepository.deleteAllByProject(project);
                 projectContextRepository.deleteAllByProjectAndFileType(project, FileType.SPEC);
                 projectContextRepository.deleteAllByProjectAndFileType(project, FileType.CONTEXT_CODE);
@@ -314,7 +314,7 @@ public class ProjectServiceImpl implements ProjectService {
             case "BACKEND_ANALYST" -> {
                 agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
                         List.of(StepName.BACKEND_ANALYST, StepName.FRONTEND_ANALYST, 
-                                StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.WORKER, StepName.TESTER, StepName.HELPER));
+                                StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.TESTER, StepName.HELPER));
                 projectContextRepository.deleteAllByProjectAndFileNameIn(project, 
                         List.of("BACKEND_SPEC.md", "FRONTEND_SPEC.md"));
                 projectContextRepository.deleteAllByProjectAndFileType(project, FileType.CONTEXT_CODE);
@@ -323,15 +323,15 @@ public class ProjectServiceImpl implements ProjectService {
             case "FRONTEND_ANALYST" -> {
                 agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
                         List.of(StepName.FRONTEND_ANALYST, 
-                                StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.WORKER, StepName.TESTER, StepName.HELPER));
+                                StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.TESTER, StepName.HELPER));
                 projectContextRepository.deleteAllByProjectAndFileNameIn(project, 
                         List.of("FRONTEND_SPEC.md"));
                 projectContextRepository.deleteAllByProjectAndFileType(project, FileType.CONTEXT_CODE);
                 project.setStatus(ProjectStatus.IN_PROGRESS);
             }
-            case "BACKEND_DEVELOPER", "WORKER" -> {
+            case "BACKEND_DEVELOPER" -> {
                 agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
-                        List.of(StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.WORKER, StepName.TESTER, StepName.HELPER));
+                        List.of(StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.TESTER, StepName.HELPER));
                 projectContextRepository.deleteAllByProjectAndFileType(project, FileType.CONTEXT_CODE);
                 project.setStatus(ProjectStatus.IN_PROGRESS);
             }
@@ -363,7 +363,7 @@ public class ProjectServiceImpl implements ProjectService {
                 log.warn("Unknown step name '{}', defaulting to ARCHITECT reset", step);
                 agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
                         List.of(StepName.ARCHITECT, StepName.BACKEND_ANALYST, StepName.FRONTEND_ANALYST, 
-                                StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.WORKER, StepName.TESTER, StepName.HELPER));
+                                StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.TESTER, StepName.HELPER));
                 architectQuestionRepository.deleteAllByProject(project);
                 projectContextRepository.deleteAllByProjectAndFileType(project, FileType.SPEC);
                 projectContextRepository.deleteAllByProjectAndFileType(project, FileType.CONTEXT_CODE);

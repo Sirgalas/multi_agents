@@ -146,15 +146,15 @@ public class AgentClientFactory {
             case FRONTEND_ANALYST -> (agentsProperties.getFrontendAnalyst() != null && isNotEmpty(agentsProperties.getFrontendAnalyst().getModel()))
                     ? agentsProperties.getFrontendAnalyst()
                     : agentsProperties.getArchitect();
-            case WORKER -> agentsProperties.getWorker();
             case BACKEND_DEVELOPER -> (agentsProperties.getBackendDeveloper() != null && isNotEmpty(agentsProperties.getBackendDeveloper().getModel()))
                     ? agentsProperties.getBackendDeveloper()
-                    : agentsProperties.getWorker();
+                    : agentsProperties.getAll();
             case FRONTEND_DEVELOPER -> (agentsProperties.getFrontendDeveloper() != null && isNotEmpty(agentsProperties.getFrontendDeveloper().getModel()))
                     ? agentsProperties.getFrontendDeveloper()
-                    : agentsProperties.getWorker();
+                    : agentsProperties.getAll();
             case TESTER -> agentsProperties.getTester();
             case HELPER -> agentsProperties.getHelper();
+            case ARCHIVER -> agentsProperties.getAll();
         };
     }
 }

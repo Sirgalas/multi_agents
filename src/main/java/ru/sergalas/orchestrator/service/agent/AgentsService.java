@@ -76,8 +76,8 @@ public interface AgentsService {
     /**
      * Проверяет, является ли данный агент разработчиком.
      */
-    default boolean isWorker() {
+    default boolean isDeveloper() {
         StepName step = getStepName();
-        return step == StepName.BACKEND_DEVELOPER || step == StepName.FRONTEND_DEVELOPER || step == StepName.WORKER;
+        return step == StepName.BACKEND_DEVELOPER || step == StepName.FRONTEND_DEVELOPER;
     }
 }

@@ -61,7 +61,7 @@ public class BackendWorkerService extends BaseAgentService implements AgentsServ
             return Optional.empty();
         }
         String s = stepName.trim();
-        if (StepName.BACKEND_DEVELOPER.name().equalsIgnoreCase(s) || "WORKER".equalsIgnoreCase(s)) {
+        if (StepName.BACKEND_DEVELOPER.name().equalsIgnoreCase(s)) {
             return Optional.of(this);
         }
         return Optional.empty();
@@ -79,10 +79,6 @@ public class BackendWorkerService extends BaseAgentService implements AgentsServ
 
         boolean hasStep = agentStepRepository
                 .findFirstByProjectAndStepNameOrderByCreatedAtDesc(project, StepName.BACKEND_DEVELOPER)
-                .map(step -> step.getStatus() == StepStatus.COMPLETED)
-                .orElse(false)
-                || agentStepRepository
-                .findFirstByProjectAndStepNameOrderByCreatedAtDesc(project, StepName.WORKER)
                 .map(step -> step.getStatus() == StepStatus.COMPLETED)
                 .orElse(false);
 

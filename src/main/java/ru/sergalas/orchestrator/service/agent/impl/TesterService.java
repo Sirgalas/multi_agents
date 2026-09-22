@@ -13,13 +13,15 @@ import ru.sergalas.orchestrator.entity.enums.StepName;
 import ru.sergalas.orchestrator.entity.enums.StepStatus;
 import ru.sergalas.orchestrator.repository.AgentStepRepository;
 import ru.sergalas.orchestrator.service.agent.AgentClientFactory;
+import ru.sergalas.orchestrator.service.agent.AgentsService;
 import ru.sergalas.orchestrator.service.agent.BaseAgentService;
-import ru.sergalas.orchestrator.service.agent.TesterService;
 import ru.sergalas.orchestrator.service.project.ProjectContextService;
 import ru.sergalas.orchestrator.service.project.ProjectService;
 
 import ru.sergalas.orchestrator.entity.AgentPrompt;
 import ru.sergalas.orchestrator.service.prompt.AgentPromptService;
+
+import org.springframework.core.annotation.Order;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,8 +30,9 @@ import java.util.Optional;
 
 @Slf4j
 @Service
+@Order(5)
 @RequiredArgsConstructor
-public class TesterServiceImpl extends BaseAgentService implements TesterService {
+public class TesterService extends BaseAgentService implements AgentsService {
 
     private final AgentClientFactory clientFactory;
     private final ProjectService projectService;
@@ -38,9 +41,39 @@ public class TesterServiceImpl extends BaseAgentService implements TesterService
     private final AgentPromptService agentPromptService;
 
     @Override
+    public StepName getStepName() {
+        return StepName.TESTER;
+    }
+
+    @Override
+    public Optional<AgentsService> isNeedAgents(Project project) {
+        return Optional.of(this);
+    }
+
+    @Override
+    public boolean isCompleted(Project project) {
+        if (project == null) {
+            return false;
+        }
+        boolean hasContextTests = contextService.getContextByProject(project).stream()
+                .anyMatch(c -> c.getFileType() == FileType.CONTEXT_CODE && "GENERATED_TESTS.md".equals(c.getFileName())
+                        && c.getFileContent() != null && !c.getFileContent().isBlank());
+
+        return hasContextTests && agentStepRepository
+                .findFirstByProjectAndStepNameOrderByCreatedAtDesc(project, StepName.TESTER)
+                .map(step -> step.getStatus() == StepStatus.COMPLETED)
+                .orElse(false);
+    }
+
+    @Override
     @Transactional
-    public void generateTests(Long projectId) {
+    public void work(Long projectId) {
         Project project = projectService.getProjectById(projectId);
+        if (isCompleted(project)) {
+            log.info("Pipeline Step: TESTER already completed for project {}. Reusing generated tests.", projectId);
+            return;
+        }
+        log.info("Pipeline Step: TESTER - generating unit/integration tests...");
         List<ProjectContext> contexts = contextService.getContextByProject(project);
         StringBuilder codeBuilder = new StringBuilder();
         for (ProjectContext ctx : contexts) {

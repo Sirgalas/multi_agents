@@ -11,7 +11,7 @@ import ru.sergalas.orchestrator.dto.response.InterviewResponse;
 import ru.sergalas.orchestrator.entity.AgentStep;
 import ru.sergalas.orchestrator.entity.Project;
 import ru.sergalas.orchestrator.repository.AgentStepRepository;
-import ru.sergalas.orchestrator.service.agent.InterviewerService;
+import ru.sergalas.orchestrator.service.agent.impl.InterviewerService;
 import ru.sergalas.orchestrator.service.project.ProjectService;
 
 import java.util.List;

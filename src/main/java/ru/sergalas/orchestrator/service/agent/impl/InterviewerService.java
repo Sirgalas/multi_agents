@@ -14,18 +14,22 @@ import ru.sergalas.orchestrator.entity.enums.StepStatus;
 import ru.sergalas.orchestrator.exception.AgentException;
 import ru.sergalas.orchestrator.repository.AgentStepRepository;
 import ru.sergalas.orchestrator.service.agent.AgentClientFactory;
+import ru.sergalas.orchestrator.service.agent.AgentsService;
 import ru.sergalas.orchestrator.service.agent.BaseAgentService;
-import ru.sergalas.orchestrator.service.agent.InterviewerService;
 import ru.sergalas.orchestrator.service.project.ProjectContextService;
 import ru.sergalas.orchestrator.service.project.ProjectService;
 
+import org.springframework.core.annotation.Order;
+
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
+@Order(0)
 @RequiredArgsConstructor
-public class InterviewerServiceImpl extends BaseAgentService implements InterviewerService {
+public class InterviewerService extends BaseAgentService implements AgentsService {
 
     private final AgentClientFactory clientFactory;
     private final ProjectService projectService;
@@ -33,6 +37,37 @@ public class InterviewerServiceImpl extends BaseAgentService implements Intervie
     private final AgentStepRepository agentStepRepository;
 
     @Override
+    public StepName getStepName() {
+        return StepName.INTERVIEWER;
+    }
+
+    @Override
+    public Optional<AgentsService> isNeedAgents(Project project) {
+        return Optional.of(this);
+    }
+
+    @Override
+    public boolean isCompleted(Project project) {
+        if (project == null) {
+            return false;
+        }
+        boolean hasTask = contextService.getContextByProject(project).stream()
+                .anyMatch(c -> c.getFileType() == FileType.TASK && c.getFileContent() != null && !c.getFileContent().isBlank());
+
+        boolean hasCompletedStep = agentStepRepository
+                .findFirstByProjectAndStepNameOrderByCreatedAtDesc(project, StepName.INTERVIEWER)
+                .map(step -> step.getStatus() == StepStatus.COMPLETED)
+                .orElse(false);
+
+        return hasTask || hasCompletedStep;
+    }
+
+    @Override
+    @Transactional
+    public void work(Long projectId) {
+        startInterview(projectId);
+    }
+
     @Transactional
     public InterviewResponse startInterview(Long projectId) {
         Project project = projectService.getProjectById(projectId);
@@ -60,7 +95,6 @@ public class InterviewerServiceImpl extends BaseAgentService implements Intervie
                 .build();
     }
 
-    @Override
     @Transactional
     public InterviewResponse processAnswer(Long projectId, String userMessage) {
         Project project = projectService.getProjectById(projectId);
@@ -111,7 +145,6 @@ public class InterviewerServiceImpl extends BaseAgentService implements Intervie
         }
     }
 
-    @Override
     @Transactional
     public String finalizeInterview(Long projectId) {
         Project project = projectService.getProjectById(projectId);

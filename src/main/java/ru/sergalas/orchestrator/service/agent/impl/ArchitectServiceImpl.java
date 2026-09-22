@@ -251,4 +251,35 @@ public class ArchitectServiceImpl extends BaseAgentService implements ArchitectS
         }
         return null;
     }
+
+    @Override
+    public boolean isCompleted(Project project) {
+        if (project == null) {
+            return false;
+        }
+        ArchitectQuestionsResponse pending = getPendingQuestions(project.getId());
+        if (pending != null && "PENDING".equalsIgnoreCase(pending.getStatus())) {
+            return false;
+        }
+
+        Optional<ProjectContext> specContext = contextService.getContextByProject(project).stream()
+                .filter(c -> "ARCHITECTURE_SPEC.md".equals(c.getFileName()) || (c.getFileType() == FileType.SPEC && !"BACKEND_SPEC.md".equals(c.getFileName()) && !"FRONTEND_SPEC.md".equals(c.getFileName())))
+                .findFirst();
+
+        if (specContext.isEmpty()) {
+            specContext = contextService.getLatestContextByType(project, FileType.SPEC)
+                    .filter(c -> !"BACKEND_SPEC.md".equals(c.getFileName()) && !"FRONTEND_SPEC.md".equals(c.getFileName()));
+        }
+
+        if (specContext.isEmpty() || specContext.get().getFileContent() == null || specContext.get().getFileContent().isBlank()) {
+            return false;
+        }
+
+        String content = specContext.get().getFileContent().trim();
+        if (content.startsWith("[") && content.contains("\"question\":")) {
+            return false;
+        }
+
+        return true;
+    }
 }

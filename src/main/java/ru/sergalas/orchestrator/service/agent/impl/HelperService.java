@@ -13,13 +13,15 @@ import ru.sergalas.orchestrator.entity.enums.StepName;
 import ru.sergalas.orchestrator.entity.enums.StepStatus;
 import ru.sergalas.orchestrator.repository.AgentStepRepository;
 import ru.sergalas.orchestrator.service.agent.AgentClientFactory;
+import ru.sergalas.orchestrator.service.agent.AgentsService;
 import ru.sergalas.orchestrator.service.agent.BaseAgentService;
-import ru.sergalas.orchestrator.service.agent.HelperService;
 import ru.sergalas.orchestrator.service.project.ProjectContextService;
 import ru.sergalas.orchestrator.service.project.ProjectService;
 
 import ru.sergalas.orchestrator.entity.AgentPrompt;
 import ru.sergalas.orchestrator.service.prompt.AgentPromptService;
+
+import org.springframework.core.annotation.Order;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -27,8 +29,9 @@ import java.util.Optional;
 
 @Slf4j
 @Service
+@Order(6)
 @RequiredArgsConstructor
-public class HelperServiceImpl extends BaseAgentService implements HelperService {
+public class HelperService extends BaseAgentService implements AgentsService {
 
     private final AgentClientFactory clientFactory;
     private final ProjectService projectService;
@@ -37,9 +40,39 @@ public class HelperServiceImpl extends BaseAgentService implements HelperService
     private final AgentPromptService agentPromptService;
 
     @Override
+    public StepName getStepName() {
+        return StepName.HELPER;
+    }
+
+    @Override
+    public Optional<AgentsService> isNeedAgents(Project project) {
+        return Optional.of(this);
+    }
+
+    @Override
+    public boolean isCompleted(Project project) {
+        if (project == null) {
+            return false;
+        }
+        boolean hasContextInfra = contextService.getContextByProject(project).stream()
+                .anyMatch(c -> c.getFileType() == FileType.CONTEXT_CODE && "GENERATED_INFRA.md".equals(c.getFileName())
+                        && c.getFileContent() != null && !c.getFileContent().isBlank());
+
+        return hasContextInfra && agentStepRepository
+                .findFirstByProjectAndStepNameOrderByCreatedAtDesc(project, StepName.HELPER)
+                .map(step -> step.getStatus() == StepStatus.COMPLETED)
+                .orElse(false);
+    }
+
+    @Override
     @Transactional
-    public void generateInfrastructure(Long projectId) {
+    public void work(Long projectId) {
         Project project = projectService.getProjectById(projectId);
+        if (isCompleted(project)) {
+            log.info("Pipeline Step: HELPER already completed for project {}. Reusing infrastructure & configuration.", projectId);
+            return;
+        }
+        log.info("Pipeline Step: HELPER - generating infrastructure & configs...");
 
         ProjectType projectType = project.getType() != null ? project.getType() : ProjectType.FULLSTACK;
 

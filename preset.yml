@@ -28,7 +28,9 @@ pipeline:
   steps:
     - name: ARCHITECT
       enabled: true
-    - name: WORKER
+    - name: BACKEND_DEVELOPER
+      enabled: true
+    - name: FRONTEND_DEVELOPER
       enabled: true
     - name: TESTER
       enabled: true

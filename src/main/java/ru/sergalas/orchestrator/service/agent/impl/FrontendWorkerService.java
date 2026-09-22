@@ -61,7 +61,7 @@ public class FrontendWorkerService extends BaseAgentService implements AgentsSer
             return Optional.empty();
         }
         String s = stepName.trim();
-        if (StepName.FRONTEND_DEVELOPER.name().equalsIgnoreCase(s) || "WORKER".equalsIgnoreCase(s)) {
+        if (StepName.FRONTEND_DEVELOPER.name().equalsIgnoreCase(s)) {
             return Optional.of(this);
         }
         return Optional.empty();
@@ -79,10 +79,6 @@ public class FrontendWorkerService extends BaseAgentService implements AgentsSer
 
         boolean hasStep = agentStepRepository
                 .findFirstByProjectAndStepNameOrderByCreatedAtDesc(project, StepName.FRONTEND_DEVELOPER)
-                .map(step -> step.getStatus() == StepStatus.COMPLETED)
-                .orElse(false)
-                || agentStepRepository
-                .findFirstByProjectAndStepNameOrderByCreatedAtDesc(project, StepName.WORKER)
                 .map(step -> step.getStatus() == StepStatus.COMPLETED)
                 .orElse(false);
 
