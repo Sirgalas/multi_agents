@@ -51,6 +51,10 @@ agents:
     url: ${FRONTEND_ANALYST_URL:${agents.architect.url}}
     token: ${FRONTEND_ANALYST_TOKEN:${agents.architect.token}}
     model: ${FRONTEND_ANALYST_MODEL:${agents.architect.model}}
+  designer:
+    url: ${DESIGNER_URL:${agents.architect.url}}
+    token: ${DESIGNER_TOKEN:${agents.architect.token}}
+    model: ${DESIGNER_MODEL:${agents.architect.model}}
   backend-developer:
     url: ${BACKEND_DEVELOPER_URL:${agents.all.url}}
     token: ${BACKEND_DEVELOPER_TOKEN:${agents.all.token}}

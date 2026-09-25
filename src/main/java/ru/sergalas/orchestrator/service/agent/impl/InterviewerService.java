@@ -19,15 +19,12 @@ import ru.sergalas.orchestrator.service.agent.BaseAgentService;
 import ru.sergalas.orchestrator.service.project.ProjectContextService;
 import ru.sergalas.orchestrator.service.project.ProjectService;
 
-import org.springframework.core.annotation.Order;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Slf4j
 @Service
-@Order(0)
 @RequiredArgsConstructor
 public class InterviewerService extends BaseAgentService implements AgentsService {
 

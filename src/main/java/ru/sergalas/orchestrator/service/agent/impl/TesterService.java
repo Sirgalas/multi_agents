@@ -21,8 +21,6 @@ import ru.sergalas.orchestrator.service.project.ProjectService;
 import ru.sergalas.orchestrator.entity.AgentPrompt;
 import ru.sergalas.orchestrator.service.prompt.AgentPromptService;
 
-import org.springframework.core.annotation.Order;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +28,6 @@ import java.util.Optional;
 
 @Slf4j
 @Service
-@Order(5)
 @RequiredArgsConstructor
 public class TesterService extends BaseAgentService implements AgentsService {
 

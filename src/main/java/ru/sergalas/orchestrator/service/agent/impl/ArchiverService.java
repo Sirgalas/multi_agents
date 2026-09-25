@@ -2,7 +2,6 @@ package ru.sergalas.orchestrator.service.agent.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.sergalas.orchestrator.dto.response.ProjectArchiveResponse;
@@ -24,7 +23,6 @@ import java.util.Optional;
 
 @Slf4j
 @Service
-@Order(7)
 @RequiredArgsConstructor
 public class ArchiverService implements AgentsService {
 

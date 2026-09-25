@@ -199,4 +199,37 @@ class ArchitectServiceImplTest {
                 eq(1)
         );
     }
+
+    @Test
+    @DisplayName("AgentsService: getStepName возвращает ARCHITECT и isNeedAgents всегда активен")
+    void agentsService_ContractMethods() {
+        assertThat(architectService.getStepName()).isEqualTo(StepName.ARCHITECT);
+        assertThat(architectService.isNeedAgents(project)).isPresent().contains(architectService);
+        assertThat(architectService.isNeedAgents("ARCHITECT")).isPresent().contains(architectService);
+        assertThat(architectService.isNeedAgents("OTHER")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("AgentsService: work делегирует выполнение в analyzeTask")
+    void work_DelegatesToAnalyzeTask() {
+        // Arrange
+        when(projectService.getProjectById(10L)).thenReturn(project);
+        when(contextService.getLatestContextByType(project, FileType.TASK)).thenReturn(Optional.empty());
+        when(mcpClientService.aggregateMcpContext(project)).thenReturn("");
+        when(clientFactory.createClient(StepName.ARCHITECT)).thenReturn(chatModel);
+        when(chatModel.call(any(Prompt.class))).thenReturn(createChatResponse("SPECIFICATION:\nArchitecture via work"));
+
+        // Act
+        architectService.work(10L);
+
+        // Assert
+        verify(contextService).saveFile(
+                eq(project),
+                eq("ARCHITECTURE_SPEC.md"),
+                eq("/ARCHITECTURE_SPEC.md"),
+                contains("Architecture via work"),
+                eq(FileType.SPEC),
+                eq(1)
+        );
+    }
 }

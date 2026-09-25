@@ -12,6 +12,7 @@ import ru.sergalas.orchestrator.service.agent.AgentsService;
 import ru.sergalas.orchestrator.service.agent.ArchitectService;
 import ru.sergalas.orchestrator.service.project.ProjectService;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
@@ -31,9 +32,10 @@ public class PipelineExecutor {
         try {
             // Step 1: Architect analysis
             projectService.updateStatus(projectId, ProjectStatus.IN_PROGRESS);
-            if (!architectService.isCompleted(project)) {
+            AgentsService architect = getArchitectAgent();
+            if (architect != null && !architect.isCompleted(project)) {
                 log.info("Pipeline Step 1: ARCHITECT - analyzing task...");
-                architectService.analyzeTask(projectId);
+                architect.work(projectId);
             }
 
             ArchitectQuestionsResponse pending = architectService.getPendingQuestions(projectId);
@@ -43,16 +45,19 @@ public class PipelineExecutor {
                 return;
             }
 
-            // Step 1b & 1c: Agent specifications (Backend, Frontend, etc.)
+            // Step 1b, 1c, 1d: Agent specifications and Design (Backend Analyst, Frontend Analyst, Designer)
             for (AgentsService agent : getAnalystAgents()) {
                 agent.isNeedAgents(project).ifPresentOrElse(
-                        a -> a.work(projectId),
+                        agentsService -> {
+                            log.info("Pipeline Step: running {} for project {}", agentsService.getStepName(), projectId);
+                            agentsService.work(projectId);
+                        },
                         () -> log.info("Project {} does not need {}. Skipping.", projectId, agent.getStepName())
                 );
             }
 
-            // If specifications are ready, pause for user review and approval before starting development!
-            log.info("Pipeline Step 1 complete (Architect + Analysts). Specifications ready for project {}. Pausing in WAITING_FOR_INPUT for user approval.", projectId);
+            // If specifications and design tokens are ready, pause for user review and approval before starting development!
+            log.info("Pipeline Step 1 complete (Architect + Analysts + Designer). Specifications and design tokens ready for project {}. Pausing in WAITING_FOR_INPUT for user approval.", projectId);
             projectService.updateStatus(projectId, ProjectStatus.WAITING_FOR_INPUT);
 
         } catch (Exception e) {
@@ -101,7 +106,7 @@ public class PipelineExecutor {
         }
 
         try {
-            // Ensure specs are in place before writing code
+            // Ensure specs and design tokens are in place before writing code
             for (AgentsService agent : getAnalystAgents()) {
                 agent.isNeedAgents(project).ifPresent(a -> a.work(projectId));
             }
@@ -122,21 +127,45 @@ public class PipelineExecutor {
         }
     }
 
+    /**
+     * Возвращает агентов фазы проектирования и анализа (Backend Analyst, Frontend Analyst, Designer).
+     */
     private List<AgentsService> getAnalystAgents() {
         if (agents == null) {
             return List.of();
         }
         return agents.stream()
                 .filter(AgentsService::isAnalyst)
+                .sorted(Comparator.comparingInt(a -> a.getStepName() != null ? a.getStepName().getOrder() : Integer.MAX_VALUE))
                 .toList();
     }
 
+    /**
+     * Возвращает агентов фазы непосредственной разработки и сборки (Backend Worker, Frontend Worker, Tester, Helper, Archiver).
+     */
     public List<AgentsService> getDevelopmentAgents() {
         if (agents == null) {
             return List.of();
         }
         return agents.stream()
                 .filter(a -> a.isDeveloper() || a.getStepName() == StepName.TESTER || a.getStepName() == StepName.HELPER || a.getStepName() == StepName.ARCHIVER)
+                .sorted(Comparator.comparingInt(a -> a.getStepName() != null ? a.getStepName().getOrder() : Integer.MAX_VALUE))
                 .toList();
+    }
+
+    /**
+     * Возвращает агента архитектора.
+     */
+    private AgentsService getArchitectAgent() {
+        if (architectService instanceof AgentsService as) {
+            return as;
+        }
+        if (agents != null) {
+            return agents.stream()
+                    .filter(a -> a.getStepName() == StepName.ARCHITECT)
+                    .findFirst()
+                    .orElse(null);
+        }
+        return null;
     }
 }

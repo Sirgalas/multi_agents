@@ -70,7 +70,7 @@ public interface AgentsService {
      */
     default boolean isAnalyst() {
         StepName step = getStepName();
-        return step == StepName.BACKEND_ANALYST || step == StepName.FRONTEND_ANALYST;
+        return step != null && step.isAnalyst();
     }
 
     /**
@@ -78,6 +78,6 @@ public interface AgentsService {
      */
     default boolean isDeveloper() {
         StepName step = getStepName();
-        return step == StepName.BACKEND_DEVELOPER || step == StepName.FRONTEND_DEVELOPER;
+        return step != null && step.isDeveloper();
     }
 }

@@ -40,9 +40,13 @@ class PipelineExecutorTest {
     @Mock
     private ArchitectService architectService;
     @Mock
+    private AgentsService architectAgent;
+    @Mock
     private AgentsService backendAnalyst;
     @Mock
     private AgentsService frontendAnalyst;
+    @Mock
+    private AgentsService designerService;
     @Mock
     private AgentsService backendWorker;
     @Mock
@@ -107,6 +111,24 @@ class PipelineExecutorTest {
         when(backendAnalyst.isAnalyst()).thenReturn(true);
         when(frontendAnalyst.isAnalyst()).thenReturn(true);
 
+        when(designerService.getStepName()).thenReturn(StepName.DESIGNER);
+        when(designerService.isNeedAgents(any(Project.class))).thenAnswer(inv -> {
+            Project p = inv.getArgument(0);
+            return (p == null || p.getType() != ProjectType.BACKEND_ONLY) ? Optional.of(designerService) : Optional.empty();
+        });
+        when(designerService.isNeedAgents(anyString())).thenAnswer(inv -> {
+            String s = inv.getArgument(0);
+            return "DESIGNER".equalsIgnoreCase(s) ? Optional.of(designerService) : Optional.empty();
+        });
+        when(designerService.isNeedAgents(any(), anyString())).thenAnswer(inv -> {
+            Project p = inv.getArgument(0);
+            String s = inv.getArgument(1);
+            return ("DESIGNER".equalsIgnoreCase(s) && (p == null || p.getType() != ProjectType.BACKEND_ONLY))
+                    ? Optional.of(designerService) : Optional.empty();
+        });
+        when(designerService.isCompleted(any())).thenReturn(false);
+        when(designerService.isAnalyst()).thenReturn(true);
+
         when(backendWorker.getStepName()).thenReturn(StepName.BACKEND_DEVELOPER);
         when(frontendWorker.getStepName()).thenReturn(StepName.FRONTEND_DEVELOPER);
         when(backendWorker.isDeveloper()).thenReturn(true);
@@ -133,9 +155,13 @@ class PipelineExecutorTest {
         when(archiverService.isNeedAgents(any(Project.class))).thenReturn(Optional.of(archiverService));
         when(archiverService.isCompleted(any())).thenReturn(false);
 
+        when(architectAgent.getStepName()).thenReturn(StepName.ARCHITECT);
+        when(architectAgent.isNeedAgents(any(Project.class))).thenReturn(Optional.of(architectAgent));
+        when(architectAgent.isCompleted(any())).thenReturn(false);
+
         pipelineExecutor = new PipelineExecutor(
                 architectService,
-                List.of(backendAnalyst, frontendAnalyst, backendWorker, frontendWorker, testerService, helperService, archiverService),
+                List.of(architectAgent, backendAnalyst, frontendAnalyst, designerService, backendWorker, frontendWorker, testerService, helperService, archiverService),
                 projectService
         );
     }
@@ -146,15 +172,16 @@ class PipelineExecutorTest {
         // Arrange
         when(projectService.getProjectById(1L)).thenReturn(project);
         when(architectService.getPendingQuestions(1L)).thenReturn(null);
-        when(architectService.isCompleted(project)).thenReturn(true);
+        when(architectAgent.isCompleted(project)).thenReturn(true);
 
         // Act
         pipelineExecutor.runPipeline(1L);
 
         // Assert
-        verify(architectService, never()).analyzeTask(anyLong());
+        verify(architectAgent, never()).work(anyLong());
         verify(backendAnalyst).work(1L);
         verify(frontendAnalyst).work(1L);
+        verify(designerService).work(1L);
         verify(projectService).updateStatus(1L, ProjectStatus.WAITING_FOR_INPUT);
         // Downstream development and archiver workers must NEVER be invoked without explicit approval!
         verify(backendWorker, never()).work(anyLong());
@@ -181,10 +208,11 @@ class PipelineExecutorTest {
         pipelineExecutor.runPipeline(1L);
 
         // Assert
-        verify(architectService).analyzeTask(1L);
+        verify(architectAgent).work(1L);
         verify(projectService).updateStatus(1L, ProjectStatus.WAITING_FOR_INPUT);
 
         // Subsequent steps should not execute
+        verify(designerService, never()).work(anyLong());
         verify(backendWorker, never()).work(anyLong());
         verify(frontendWorker, never()).work(anyLong());
         verify(testerService, never()).work(anyLong());
@@ -248,8 +276,8 @@ class PipelineExecutorTest {
         // Arrange
         when(projectService.getProjectById(1L)).thenReturn(project);
         when(architectService.getPendingQuestions(1L)).thenReturn(null);
-        when(architectService.isCompleted(project)).thenReturn(false);
-        doThrow(new RuntimeException("LLM Connection failed")).when(architectService).analyzeTask(1L);
+        when(architectAgent.isCompleted(project)).thenReturn(false);
+        doThrow(new RuntimeException("LLM Connection failed")).when(architectAgent).work(1L);
 
         // Act
         pipelineExecutor.runPipeline(1L);
@@ -288,6 +316,7 @@ class PipelineExecutorTest {
         // Assert
         verify(backendAnalyst).work(1L);
         verify(frontendAnalyst, never()).work(anyLong());
+        verify(designerService, never()).work(anyLong());
         verify(projectService).updateStatus(1L, ProjectStatus.WAITING_FOR_INPUT);
         verify(backendWorker, never()).work(anyLong());
         verify(frontendWorker, never()).work(anyLong());
@@ -305,13 +334,14 @@ class PipelineExecutorTest {
         // Assert
         verify(backendAnalyst, never()).work(anyLong());
         verify(frontendAnalyst).work(1L);
+        verify(designerService, never()).work(anyLong());
         verify(projectService).updateStatus(1L, ProjectStatus.WAITING_FOR_INPUT);
         verify(backendWorker, never()).work(anyLong());
         verify(frontendWorker, never()).work(anyLong());
     }
 
     @Test
-    @DisplayName("Тип проекта BACKEND_ONLY: в runPipeline пропускается Frontend Analyst")
+    @DisplayName("Тип проекта BACKEND_ONLY: в runPipeline пропускается Frontend Analyst и Designer")
     void runPipeline_WhenBackendOnly_SkipsFrontendAnalyst() {
         // Arrange
         project.setType(ProjectType.BACKEND_ONLY);
@@ -326,11 +356,12 @@ class PipelineExecutorTest {
         // Assert
         verify(backendAnalyst).work(1L);
         verify(frontendAnalyst, never()).work(anyLong());
+        verify(designerService, never()).work(anyLong());
         verify(projectService).updateStatus(1L, ProjectStatus.WAITING_FOR_INPUT);
     }
 
     @Test
-    @DisplayName("Тип проекта FRONTEND_ONLY: в runPipeline пропускается Backend Analyst")
+    @DisplayName("Тип проекта FRONTEND_ONLY: в runPipeline пропускается Backend Analyst, но запускаются Frontend Analyst и Designer")
     void runPipeline_WhenFrontendOnly_SkipsBackendAnalyst() {
         // Arrange
         project.setType(ProjectType.FRONTEND_ONLY);
@@ -345,6 +376,7 @@ class PipelineExecutorTest {
         // Assert
         verify(backendAnalyst, never()).work(anyLong());
         verify(frontendAnalyst).work(1L);
+        verify(designerService).work(1L);
         verify(projectService).updateStatus(1L, ProjectStatus.WAITING_FOR_INPUT);
     }
 

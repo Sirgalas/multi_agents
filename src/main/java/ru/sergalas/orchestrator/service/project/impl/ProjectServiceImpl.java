@@ -16,6 +16,7 @@ import ru.sergalas.orchestrator.entity.enums.ProjectType;
 import ru.sergalas.orchestrator.entity.enums.StepName;
 import ru.sergalas.orchestrator.exception.ProjectNotFoundException;
 import ru.sergalas.orchestrator.repository.*;
+import ru.sergalas.orchestrator.service.orchestrator.StepOrderRegistry;
 import ru.sergalas.orchestrator.service.project.ProjectContextService;
 import ru.sergalas.orchestrator.service.project.ProjectService;
 
@@ -304,8 +305,7 @@ public class ProjectServiceImpl implements ProjectService {
         switch (step) {
             case "ARCHITECT" -> {
                 agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
-                        List.of(StepName.ARCHITECT, StepName.BACKEND_ANALYST, StepName.FRONTEND_ANALYST, 
-                                StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.TESTER, StepName.HELPER));
+                        StepOrderRegistry.getDownstreamSteps(StepName.ARCHITECT));
                 architectQuestionRepository.deleteAllByProject(project);
                 projectContextRepository.deleteAllByProjectAndFileType(project, FileType.SPEC);
                 projectContextRepository.deleteAllByProjectAndFileType(project, FileType.CONTEXT_CODE);
@@ -313,45 +313,51 @@ public class ProjectServiceImpl implements ProjectService {
             }
             case "BACKEND_ANALYST" -> {
                 agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
-                        List.of(StepName.BACKEND_ANALYST, StepName.FRONTEND_ANALYST, 
-                                StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.TESTER, StepName.HELPER));
+                        StepOrderRegistry.getDownstreamSteps(StepName.BACKEND_ANALYST));
                 projectContextRepository.deleteAllByProjectAndFileNameIn(project, 
-                        List.of("BACKEND_SPEC.md", "FRONTEND_SPEC.md"));
+                        List.of("BACKEND_SPEC.md", "FRONTEND_SPEC.md", "DESIGN_TOKENS.json"));
                 projectContextRepository.deleteAllByProjectAndFileType(project, FileType.CONTEXT_CODE);
                 project.setStatus(ProjectStatus.IN_PROGRESS);
             }
             case "FRONTEND_ANALYST" -> {
                 agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
-                        List.of(StepName.FRONTEND_ANALYST, 
-                                StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.TESTER, StepName.HELPER));
+                        StepOrderRegistry.getDownstreamSteps(StepName.FRONTEND_ANALYST));
                 projectContextRepository.deleteAllByProjectAndFileNameIn(project, 
-                        List.of("FRONTEND_SPEC.md"));
+                        List.of("FRONTEND_SPEC.md", "DESIGN_TOKENS.json"));
+                projectContextRepository.deleteAllByProjectAndFileType(project, FileType.CONTEXT_CODE);
+                project.setStatus(ProjectStatus.IN_PROGRESS);
+            }
+            case "DESIGNER" -> {
+                agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
+                        StepOrderRegistry.getDownstreamSteps(StepName.DESIGNER));
+                projectContextRepository.deleteAllByProjectAndFileNameIn(project, 
+                        List.of("DESIGN_TOKENS.json"));
                 projectContextRepository.deleteAllByProjectAndFileType(project, FileType.CONTEXT_CODE);
                 project.setStatus(ProjectStatus.IN_PROGRESS);
             }
             case "BACKEND_DEVELOPER" -> {
                 agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
-                        List.of(StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.TESTER, StepName.HELPER));
+                        StepOrderRegistry.getDownstreamSteps(StepName.BACKEND_DEVELOPER));
                 projectContextRepository.deleteAllByProjectAndFileType(project, FileType.CONTEXT_CODE);
                 project.setStatus(ProjectStatus.IN_PROGRESS);
             }
             case "FRONTEND_DEVELOPER" -> {
                 agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
-                        List.of(StepName.FRONTEND_DEVELOPER, StepName.TESTER, StepName.HELPER));
+                        StepOrderRegistry.getDownstreamSteps(StepName.FRONTEND_DEVELOPER));
                 projectContextRepository.deleteAllByProjectAndFileNameIn(project, 
                         List.of("GENERATED_FRONTEND_CODE.md", "GENERATED_TESTS.md", "GENERATED_INFRA.md"));
                 project.setStatus(ProjectStatus.IN_PROGRESS);
             }
             case "TESTER" -> {
                 agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
-                        List.of(StepName.TESTER, StepName.HELPER));
+                        StepOrderRegistry.getDownstreamSteps(StepName.TESTER));
                 projectContextRepository.deleteAllByProjectAndFileNameIn(project, 
                         List.of("GENERATED_TESTS.md", "GENERATED_INFRA.md"));
                 project.setStatus(ProjectStatus.IN_PROGRESS);
             }
             case "HELPER" -> {
                 agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
-                        List.of(StepName.HELPER));
+                        StepOrderRegistry.getDownstreamSteps(StepName.HELPER));
                 projectContextRepository.deleteAllByProjectAndFileNameIn(project, 
                         List.of("GENERATED_INFRA.md"));
                 project.setStatus(ProjectStatus.IN_PROGRESS);
@@ -362,8 +368,7 @@ public class ProjectServiceImpl implements ProjectService {
             default -> {
                 log.warn("Unknown step name '{}', defaulting to ARCHITECT reset", step);
                 agentStepRepository.deleteAllByProjectAndStepNameIn(project, 
-                        List.of(StepName.ARCHITECT, StepName.BACKEND_ANALYST, StepName.FRONTEND_ANALYST, 
-                                StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.TESTER, StepName.HELPER));
+                        StepOrderRegistry.getDownstreamSteps(StepName.ARCHITECT));
                 architectQuestionRepository.deleteAllByProject(project);
                 projectContextRepository.deleteAllByProjectAndFileType(project, FileType.SPEC);
                 projectContextRepository.deleteAllByProjectAndFileType(project, FileType.CONTEXT_CODE);

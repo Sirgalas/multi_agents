@@ -85,4 +85,17 @@ class AgentClientFactoryTest {
         // Assert
         assertThat(client).isNotNull();
     }
+
+    @Test
+    @DisplayName("Edge Case: для DESIGNER при пустых персональных настройках берется fallback на архитектора")
+    void createClient_Designer_FallbackToArchitect() {
+        // Arrange
+        agentsProperties.getArchitect().setModel("cc/claude-sonnet-4-6");
+
+        // Act
+        OpenAiChatModel client = factory.createClient(StepName.DESIGNER);
+
+        // Assert
+        assertThat(client).isNotNull();
+    }
 }

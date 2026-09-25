@@ -21,7 +21,6 @@ import ru.sergalas.orchestrator.service.project.ProjectService;
 import ru.sergalas.orchestrator.entity.AgentPrompt;
 import ru.sergalas.orchestrator.service.prompt.AgentPromptService;
 
-import org.springframework.core.annotation.Order;
 import ru.sergalas.orchestrator.entity.enums.ProjectType;
 import ru.sergalas.orchestrator.service.agent.AgentsService;
 
@@ -31,7 +30,6 @@ import java.util.Optional;
 
 @Slf4j
 @Service
-@Order(4)
 @RequiredArgsConstructor
 public class FrontendWorkerService extends BaseAgentService implements AgentsService {
 
@@ -114,6 +112,13 @@ public class FrontendWorkerService extends BaseAgentService implements AgentsSer
                 .findFirst()
                 .orElse("");
 
+        String designTokens = contextService.getContextByProject(project).stream()
+                .filter(c -> "DESIGN_TOKENS.json".equals(c.getFileName()) || "DESIGN_SPEC.md".equals(c.getFileName()))
+                .filter(c -> c.getFileContent() != null && !c.getFileContent().isBlank())
+                .map(ProjectContext::getFileContent)
+                .findFirst()
+                .orElse("");
+
         Optional<AgentPrompt> promptOpt = agentPromptService != null
                 ? agentPromptService.getEffectivePrompt(project, StepName.FRONTEND_DEVELOPER, false)
                 : Optional.empty();
@@ -125,22 +130,24 @@ public class FrontendWorkerService extends BaseAgentService implements AgentsSer
                     "taskContent", task,
                     "frontendSpec", frontendSpec,
                     "archSpec", spec,
-                    "backendCode", backendCode
+                    "backendCode", backendCode,
+                    "designTokens", designTokens
             );
             prompt = agentPromptService.interpolate(promptOpt.get().getPrompt(), vars);
         } else {
             prompt = "Ты — Senior Frontend / Mobile Engineer (React / React Native / TypeScript / Flutter).\n" +
-                "Сгенерируй полноценный, рабочий клиентский код приложения строго в директорию `frontend/` на основе ТЗ, Архитектурной спецификации и готового бэкенда.\n\n" +
+                "Сгенерируй полноценный, рабочий клиентский код приложения строго в директорию `frontend/` на основе ТЗ, Архитектурной спецификации, спецификации фронтенда, дизайн-токенов и готового бэкенда.\n\n" +
                 "ТРЕБОВАНИЯ К ФРОНТЕНДУ (СТРОГО В ПАПКУ `frontend/`):\n" +
                 "Все файлы клиентской части должны размещаться строго по пути `frontend/...`:\n" +
-                "1. Конфигурация проекта (`frontend/package.json`, `frontend/tsconfig.json`, `frontend/app.json` или `frontend/pubspec.yaml`).\n" +
+                "1. Конфигурация проекта (`frontend/package.json`, `frontend/tsconfig.json`, `frontend/tailwind.config.js` или `frontend/pubspec.yaml`).\n" +
                 "2. Точка входа в приложение (`frontend/App.tsx`, `frontend/index.ts` или `frontend/lib/main.dart`).\n" +
                 "3. Навигация (React Navigation / Expo Router / Flutter Router): Auth Stack (логин, регистрация), Main Tab Navigator (дашборд, профиль, трекинг, списки) и детальные экраны.\n" +
                 "4. Экраны (Screens): экран входа/регистрации, главный дашборд, специализированные экраны функционала из ТЗ (трекер, таймер, интервалы, настройки, профиль).\n" +
-                "5. UI-компоненты: переиспользуемые кнопки, карточки, инпуты, модальные окна, индикаторы загрузки и ошибок.\n" +
+                "5. UI-компоненты (Tailwind CSS + shadcn/ui): переиспользуемые кнопки, карточки, инпуты, модальные окна, индикаторы загрузки и ошибок, строго соответствующие дизайн-токенам (DESIGN_TOKENS.json).\n" +
                 "6. API-сервисы и HTTP-клиент (Axios / Fetch / Dio): функции для каждого эндпоинта бэкенда, interceptors для автоматической подстановки JWT Bearer токена и обработки 401 Unauthorized.\n" +
                 "7. Управление состоянием (Zustand / Redux / Context / Riverpod / Flutter BLoC) и сохранение JWT токенов в защищенное хранилище (AsyncStorage / SecureStore).\n" +
-                "8. Интеграция с нативными API и фоновыми сервисами (если указано в ТЗ: GPS геопозиция, фоновые таймеры, Audio Ducking, разрешения в AndroidManifest.xml / Info.plist).\n\n" +
+                "8. Интеграция с нативными API и фоновыми сервисами (если указано в ТЗ: GPS геопозиция, фоновые таймеры, Audio Ducking, разрешения в AndroidManifest.xml / Info.plist).\n" +
+                "9. ДИЗАЙН-СИСТЕМА: Строго используй цвета, шрифты, радиусы скруглений и каркасы экранов из переданных дизайн-токенов!\n\n" +
                 "СТРОГОЕ СООТВЕТСТВИЕ КОНТРАКТАМ БЭКЕНДА:\n" +
                 "Используй точные URL эндпоинтов, параметры запросов, структуру JSON Request/Response DTO и коды статусов, которые реализованы в бэкенде!\n\n" +
                 "ВАЖНО: Пиши полноценный рабочий код без сокращений и плейсхолдеров вроде '// TODO: implement'.\n\n" +
@@ -153,6 +160,7 @@ public class FrontendWorkerService extends BaseAgentService implements AgentsSer
                 "Архитектурные правила и MCP:\n" + mcp + "\n\n" +
                 "ТЗ:\n" + task + "\n\n" +
                 "Спецификация Фронтенда (UI & Экраны):\n" + frontendSpec + "\n\n" +
+                "UI Дизайн-токены (Tailwind / shadcn/ui):\n" + designTokens + "\n\n" +
                 "Общая Спецификация:\n" + spec + "\n\n" +
                 "Сгенерированный код бэкенда (API контракты и DTO):\n" + backendCode;
         }

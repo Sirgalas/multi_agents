@@ -21,6 +21,7 @@ import ru.sergalas.orchestrator.exception.AgentException;
 import ru.sergalas.orchestrator.repository.AgentStepRepository;
 import ru.sergalas.orchestrator.repository.ArchitectQuestionRepository;
 import ru.sergalas.orchestrator.service.agent.AgentClientFactory;
+import ru.sergalas.orchestrator.service.agent.AgentsService;
 import ru.sergalas.orchestrator.service.agent.ArchitectService;
 import ru.sergalas.orchestrator.service.agent.BaseAgentService;
 import ru.sergalas.orchestrator.service.mcp.McpClientService;
@@ -40,7 +41,7 @@ import java.util.Optional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ArchitectServiceImpl extends BaseAgentService implements ArchitectService {
+public class ArchitectServiceImpl extends BaseAgentService implements AgentsService, ArchitectService {
 
     private final AgentClientFactory clientFactory;
     private final ProjectService projectService;
@@ -54,6 +55,21 @@ public class ArchitectServiceImpl extends BaseAgentService implements ArchitectS
     public static final int MAX_QUESTION_ROUNDS = 4;
 
     @Override
+    public StepName getStepName() {
+        return StepName.ARCHITECT;
+    }
+
+    @Override
+    public Optional<AgentsService> isNeedAgents(Project project) {
+        return Optional.of(this);
+    }
+
+    @Override
+    @Transactional
+    public void work(Long projectId) {
+        analyzeTask(projectId);
+    }
+
     @Transactional
     public void analyzeTask(Long projectId) {
         Project project = projectService.getProjectById(projectId);

@@ -146,6 +146,9 @@ public class AgentClientFactory {
             case FRONTEND_ANALYST -> (agentsProperties.getFrontendAnalyst() != null && isNotEmpty(agentsProperties.getFrontendAnalyst().getModel()))
                     ? agentsProperties.getFrontendAnalyst()
                     : agentsProperties.getArchitect();
+            case DESIGNER -> (agentsProperties.getDesigner() != null && isNotEmpty(agentsProperties.getDesigner().getModel()))
+                    ? agentsProperties.getDesigner()
+                    : agentsProperties.getArchitect();
             case BACKEND_DEVELOPER -> (agentsProperties.getBackendDeveloper() != null && isNotEmpty(agentsProperties.getBackendDeveloper().getModel()))
                     ? agentsProperties.getBackendDeveloper()
                     : agentsProperties.getAll();

@@ -277,7 +277,7 @@ class ProjectServiceImplTest {
 
         // Assert
         verify(agentStepRepository).deleteAllByProjectAndStepNameIn(project, 
-                List.of(StepName.ARCHITECT, StepName.BACKEND_ANALYST, StepName.FRONTEND_ANALYST, 
+                List.of(StepName.ARCHITECT, StepName.BACKEND_ANALYST, StepName.FRONTEND_ANALYST, StepName.DESIGNER,
                         StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.TESTER, StepName.HELPER));
         verify(architectQuestionRepository).deleteAllByProject(project);
         verify(projectContextRepository).deleteAllByProjectAndFileType(project, FileType.SPEC);
@@ -288,7 +288,7 @@ class ProjectServiceImplTest {
     }
 
     @Test
-    @DisplayName("Сброс с шага BACKEND_ANALYST: удаляет шаги Backend/Frontend Analyst и разработки, удаляет BACKEND_SPEC.md, FRONTEND_SPEC.md и код")
+    @DisplayName("Сброс с шага BACKEND_ANALYST: удаляет шаги Backend/Frontend Analyst, Designer и разработки, удаляет BACKEND_SPEC.md, FRONTEND_SPEC.md, DESIGN_TOKENS.json и код")
     void resetFromStep_WhenBackendAnalyst_ResetsBackendAnalystDownstream() {
         // Arrange
         Project project = Project.builder()
@@ -305,10 +305,10 @@ class ProjectServiceImplTest {
 
         // Assert
         verify(agentStepRepository).deleteAllByProjectAndStepNameIn(project, 
-                List.of(StepName.BACKEND_ANALYST, StepName.FRONTEND_ANALYST, 
+                List.of(StepName.BACKEND_ANALYST, StepName.FRONTEND_ANALYST, StepName.DESIGNER,
                         StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.TESTER, StepName.HELPER));
         verify(projectContextRepository).deleteAllByProjectAndFileNameIn(project, 
-                List.of("BACKEND_SPEC.md", "FRONTEND_SPEC.md"));
+                List.of("BACKEND_SPEC.md", "FRONTEND_SPEC.md", "DESIGN_TOKENS.json"));
         verify(projectContextRepository).deleteAllByProjectAndFileType(project, FileType.CONTEXT_CODE);
         assertThat(project.getStatus()).isEqualTo(ProjectStatus.IN_PROGRESS);
         assertThat(project.getArchivePath()).isNull();
@@ -316,7 +316,7 @@ class ProjectServiceImplTest {
     }
 
     @Test
-    @DisplayName("Сброс с шага FRONTEND_ANALYST: удаляет шаг Frontend Analyst и разработки, удаляет FRONTEND_SPEC.md и код, сохраняя ARCHITECTURE_SPEC.md и BACKEND_SPEC.md")
+    @DisplayName("Сброс с шага FRONTEND_ANALYST: удаляет шаг Frontend Analyst, Designer и разработки, удаляет FRONTEND_SPEC.md, DESIGN_TOKENS.json и код")
     void resetFromStep_WhenFrontendAnalyst_ResetsFrontendAnalystDownstream() {
         // Arrange
         Project project = Project.builder()
@@ -333,10 +333,38 @@ class ProjectServiceImplTest {
 
         // Assert
         verify(agentStepRepository).deleteAllByProjectAndStepNameIn(project, 
-                List.of(StepName.FRONTEND_ANALYST, 
+                List.of(StepName.FRONTEND_ANALYST, StepName.DESIGNER,
                         StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.TESTER, StepName.HELPER));
         verify(projectContextRepository).deleteAllByProjectAndFileNameIn(project, 
-                List.of("FRONTEND_SPEC.md"));
+                List.of("FRONTEND_SPEC.md", "DESIGN_TOKENS.json"));
+        verify(projectContextRepository).deleteAllByProjectAndFileType(project, FileType.CONTEXT_CODE);
+        assertThat(project.getStatus()).isEqualTo(ProjectStatus.IN_PROGRESS);
+        assertThat(project.getArchivePath()).isNull();
+        verify(projectRepository).save(project);
+    }
+
+    @Test
+    @DisplayName("Сброс с шага DESIGNER: удаляет шаг Designer и разработки, удаляет DESIGN_TOKENS.json и код")
+    void resetFromStep_WhenDesigner_ResetsDesignerDownstream() {
+        // Arrange
+        Project project = Project.builder()
+                .id(15L)
+                .name("Designer Reset Project")
+                .status(ProjectStatus.COMPLETED)
+                .archivePath("/output/fake.zip")
+                .build();
+
+        when(projectRepository.findById(15L)).thenReturn(Optional.of(project));
+
+        // Act
+        projectService.resetFromStep(15L, "DESIGNER");
+
+        // Assert
+        verify(agentStepRepository).deleteAllByProjectAndStepNameIn(project, 
+                List.of(StepName.DESIGNER, 
+                        StepName.BACKEND_DEVELOPER, StepName.FRONTEND_DEVELOPER, StepName.TESTER, StepName.HELPER));
+        verify(projectContextRepository).deleteAllByProjectAndFileNameIn(project, 
+                List.of("DESIGN_TOKENS.json"));
         verify(projectContextRepository).deleteAllByProjectAndFileType(project, FileType.CONTEXT_CODE);
         assertThat(project.getStatus()).isEqualTo(ProjectStatus.IN_PROGRESS);
         assertThat(project.getArchivePath()).isNull();

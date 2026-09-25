@@ -14,6 +14,7 @@ public class AgentsProperties {
     private AgentSettings architect = new AgentSettings();
     private AgentSettings backendAnalyst = new AgentSettings();
     private AgentSettings frontendAnalyst = new AgentSettings();
+    private AgentSettings designer = new AgentSettings();
     private AgentSettings backendDeveloper = new AgentSettings();
     private AgentSettings frontendDeveloper = new AgentSettings();
     private AgentSettings tester = new AgentSettings();

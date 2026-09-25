@@ -21,7 +21,6 @@ import ru.sergalas.orchestrator.service.project.ProjectService;
 import ru.sergalas.orchestrator.entity.AgentPrompt;
 import ru.sergalas.orchestrator.service.prompt.AgentPromptService;
 
-import org.springframework.core.annotation.Order;
 import ru.sergalas.orchestrator.entity.enums.ProjectType;
 import ru.sergalas.orchestrator.service.agent.AgentsService;
 
@@ -31,7 +30,6 @@ import java.util.Optional;
 
 @Slf4j
 @Service
-@Order(2)
 @RequiredArgsConstructor
 public class FrontendAnalystService extends BaseAgentService implements AgentsService {
 
